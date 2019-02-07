@@ -53,14 +53,16 @@ conv_flatten = tf.reshape(conv_concat, shape=(1,-1))
 
 # Dense block
 dense_1 = tf.layers.dense(conv_flatten,
-                          units=64,
-                          activation=tf.nn.relu)
+                          units=32,
+                          activation=tf.nn.relu,
+                          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01))
 dense_1 = tf.layers.batch_normalization(dense_1)
 
 
 # Output Q-values
 Qout = tf.layers.dense(dense_1, units=4,
-                       activation=tf.nn.softplus)
+                       activation=tf.nn.softplus,
+                       activity_regularizer=tf.contrib.layers.l1_regularizer(0.001))
 available_moves = tf.placeholder(tf.float32, shape=(1,4),
                                  name='available_moves')
 Qout_ = Qout*available_moves
@@ -119,6 +121,7 @@ with tf.Session() as sess:
     # attempt to load old weights
     try:
         saver.restore(sess, "/tmp/model.ckpt")
+        print('Weights loaded...')
     except:
         print('No model weights found, proceeding from scratch...')
 
