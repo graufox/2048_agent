@@ -19,7 +19,6 @@ episode_length = 2**20 # max number of moves per game
 
 learning_rate = 2e-5
 gamma = 0.955 # the discount rate of future reward
-eps = 2**-3
 num_filters = 80
 
 
