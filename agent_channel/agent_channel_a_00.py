@@ -17,7 +17,7 @@ env = Game()
 num_episodes = 1000 # number of "games" to train the agent with
 episode_length = 2**20 # max number of moves per game
 
-learning_rate = 2e-5
+learning_rate = 2e-3
 gamma = 0.955 # the discount rate of future reward
 num_filters = 80
 
@@ -30,86 +30,82 @@ observation_input = tf.placeholder(tf.float32, shape=(1,4,4,16),
 
 # 2D Convolutions on each separate layer
 input_reshape = tf.reshape(observation_input, shape=(1,4,4,16,1))
+input_reshape = tf.layers.batch_normalization(input_reshape)
 conv_2d = tf.layers.conv3d(input_reshape,
-                 filters=128,
-                 kernel_size=(2,2,1),
+                 filters=64,
+                 kernel_size=(3,3,1),
                  activation=tf.nn.relu,
                  padding='same')
 conv_2d = tf.layers.batch_normalization(conv_2d)
-conv_2d = tf.layers.conv3d(conv_2d,
-                 filters=128,
-                 kernel_size=(2,2,1),
-                 activation=tf.nn.relu,
-                 padding='same')
-conv_2d = tf.layers.batch_normalization(conv_2d)
+# conv_2d = tf.layers.conv3d(conv_2d,
+#                  filters=64,
+#                  kernel_size=(2,2,1),
+#                  activation=tf.nn.relu,
+#                  padding='same')
+# conv_2d = tf.layers.batch_normalization(conv_2d)
 
 # 3D Convolutions
 conv_3d = tf.layers.conv3d(input_reshape,#conv_2d,
-                 filters=128,
-                 kernel_size=(2,2,3),
+                 filters=32,
+                 kernel_size=(3,3,4),
                  activation=tf.nn.relu,
                  padding='same')
 conv_3d = tf.layers.batch_normalization(conv_3d)
-conv_3d = tf.layers.conv3d(conv_3d,
-                 filters=128,
-                 kernel_size=(2,2,2),
-                 activation=tf.nn.relu,
-                 padding='same')
-conv_3d = tf.layers.batch_normalization(conv_3d)
-conv_3d = tf.layers.conv3d(conv_3d,
-                 filters=128,
-                 kernel_size=(2,2,2),
-                 activation=tf.nn.relu,
-                 padding='same')
-conv_3d = tf.layers.batch_normalization(conv_3d)
+# conv_3d = tf.layers.conv3d(conv_3d,
+#                  filters=64,
+#                  kernel_size=(2,2,3),
+#                  activation=tf.nn.relu,
+#                  padding='same')
+# conv_3d = tf.layers.batch_normalization(conv_3d)
+# conv_3d = tf.layers.conv3d(conv_3d,
+#                  filters=64,
+#                  kernel_size=(2,2,3),
+#                  activation=tf.nn.relu,
+#                  padding='same')
+# conv_3d = tf.layers.batch_normalization(conv_3d)
 
-# collapse to 2-D with channels
-conv = tf.layers.conv3d(conv_3d,
-                 filters=1,
-                 kernel_size=(1,1,1),
-                 activation=tf.nn.relu,
-                 padding='same')
-conv = tf.reshape(conv, shape=(1,4,4,16))
-conv = tf.layers.conv2d(conv,
-                        filters=128,
-                        kernel_size=(2,2),
-                        activation=tf.nn.relu,
-                        padding='same')
-conv = tf.layers.batch_normalization(conv)
-conv = tf.layers.conv2d(conv,
-                        filters=128,
-                        kernel_size=(2,2),
-                        activation=tf.nn.relu,
-                        padding='same')
-conv = tf.layers.batch_normalization(conv)
-conv = tf.layers.conv2d(conv,
-                        filters=128,
-                        kernel_size=(2,2),
-                        activation=tf.nn.relu,
-                        padding='same')
-conv = tf.layers.batch_normalization(conv)
+# # collapse to 2-D with channels
+# conv = tf.layers.conv3d(conv_3d,
+#                  filters=1,
+#                  kernel_size=(1,1,1),
+#                  activation=tf.nn.relu,
+#                  padding='same')
+# conv = tf.reshape(conv, shape=(1,4,4,16))
+# conv = tf.layers.conv2d(conv,
+#                         filters=128,
+#                         kernel_size=(3,3),
+#                         activation=tf.nn.relu,
+#                         padding='same')
+# conv = tf.layers.batch_normalization(conv)
+# conv = tf.layers.conv2d(conv,
+#                         filters=128,
+#                         kernel_size=(2,2),
+#                         activation=tf.nn.relu,
+#                         padding='same')
+# conv = tf.layers.batch_normalization(conv)
+# conv = tf.layers.conv2d(conv,
+#                         filters=128,
+#                         kernel_size=(2,2),
+#                         activation=tf.nn.relu,
+#                         padding='same')
+# conv = tf.layers.batch_normalization(conv)
 
 
 # combine and flatten
 conv_concat = tf.concat([input_reshape, conv_2d, conv_3d], axis=-1)
-conv_flatten = tf.reshape(conv_concat,#conv,
+conv_flatten = tf.reshape(conv_concat,
                           shape=(1,-1))
 
 # Dense block
 dense_1 = tf.layers.dense(conv_flatten,
-                          units=64,
+                          units=32,
                           activation=tf.nn.relu)
 dense_1 = tf.layers.batch_normalization(dense_1)
-# dense_2 = tf.layers.dense(dense_1,
-#                           units=512,
-#                           activation=tf.nn.relu)
-# dense_2 = tf.layers.batch_normalization(dense_2)
 
 
 # Output Q-values
-Qout = tf.layers.dense(dense_1,
-                          units=4,
-                          activation=tf.nn.softplus)
+Qout = tf.layers.dense(dense_1, units=4,
+                       activation=tf.nn.softplus)
 available_moves = tf.placeholder(tf.float32, shape=(1,4),
                                  name='available_moves')
 Qout_ = Qout*available_moves
@@ -130,7 +126,8 @@ pickedQ = Qout[:,action_[0]]
 
 # loss definition
 loss = tf.reduce_sum(-tf.log(clip(pickedQ,1e-3,np.inf))*reward_)
-loss += tf.reduce_sum((tf.log(clip(Qout,1e-3,np.inf)+1)-tf.log(clip(nextQ,1e-3,np.inf)+1))**2)
+loss += tf.reduce_sum(tf.abs(Qout-nextQ))
+#loss += tf.reduce_sum((tf.log(clip(Qout,1e-3,np.inf)+1)-tf.log(clip(nextQ,1e-3,np.inf)+1))**2+1)
 loss += 1e-2 * tf.reduce_sum(Qout**2) # regularize output
 
 # optimizer
