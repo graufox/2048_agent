@@ -33,7 +33,13 @@ input_reshape = tf.layers.batch_normalization(input_reshape)
 
 # 2D Convolutions on each separate tile's onehot encoded grid
 conv_2d = tf.layers.conv3d(input_reshape,
-                 filters=64,
+                 filters=16,
+                 kernel_size=(3,3,1),
+                 activation=tf.nn.relu,
+                 padding='same')
+conv_2d = tf.layers.batch_normalization(conv_2d)
+conv_2d = tf.layers.conv3d(conv_2d,
+                 filters=16,
                  kernel_size=(3,3,1),
                  activation=tf.nn.relu,
                  padding='same')
@@ -41,7 +47,13 @@ conv_2d = tf.layers.batch_normalization(conv_2d)
 
 # 3D Convolutions
 conv_3d = tf.layers.conv3d(input_reshape,#conv_2d,
-                 filters=32,
+                 filters=16,
+                 kernel_size=(3,3,4),
+                 activation=tf.nn.relu,
+                 padding='same')
+conv_3d = tf.layers.batch_normalization(conv_3d)
+conv_3d = tf.layers.conv3d(conv_3d,#conv_2d,
+                 filters=16,
                  kernel_size=(3,3,4),
                  activation=tf.nn.relu,
                  padding='same')
@@ -54,20 +66,20 @@ conv_flatten = tf.reshape(conv_concat, shape=(1,-1))
 # Dense block
 dense_1 = tf.layers.dense(conv_flatten,
                           units=32,
-                          activation=tf.nn.relu,
-                          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01))
+                          activation=tf.nn.relu)#,
+                          # kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
 dense_1 = tf.layers.batch_normalization(dense_1)
 
 
 # Output Q-values
 Qout = tf.layers.dense(dense_1, units=4,
                        activation=tf.nn.softplus,
-                       activity_regularizer=tf.contrib.layers.l1_regularizer(0.001))
+                       activity_regularizer=tf.contrib.layers.l1_regularizer(1e-5))
 available_moves = tf.placeholder(tf.float32, shape=(1,4),
                                  name='available_moves')
 Qout_ = Qout*available_moves
 predict = tf.argmax(Qout_, axis=1, name='prediction')
-maxQ = tf.reduce_max(Qout, axis=1)
+maxQ = tf.reduce_max(Qout, axis=1, name='maxQ')
 
 
 
@@ -86,7 +98,7 @@ action_ = tf.placeholder(tf.int32, shape=(1,), name='action_')
 pickedQ = Qout[:,action_[0]]
 
 # loss definition
-loss = tf.reduce_sum(-tf.log(clip(pickedQ,1e-3,np.inf))*reward_)
+loss = tf.reduce_sum(-tf.log(clip(pickedQ,1e-1,np.inf))*reward_)
 loss += tf.reduce_sum(tf.abs(Qout-nextQ))
 #loss += tf.reduce_sum((tf.log(clip(Qout,1e-3,np.inf)+1)-tf.log(clip(nextQ,1e-3,np.inf)+1))**2+1)
 loss += 1e-2 * tf.reduce_sum(Qout**2) # regularize output
@@ -130,7 +142,7 @@ with tf.Session() as sess:
 
         if i_episode % 10 == 0 and i_episode > 0:
             print('\t\taverage from {} to {}: {}'.format(i_episode-10,i_episode-1,np.mean(scores[-10:])))
-        print('\tepisode {}'.format(i_episode))
+        print('\tepisode {}  ---  '.format(i_episode), end='')
 
         # start with a fresh environment
         observation = env.reset()
@@ -142,7 +154,7 @@ with tf.Session() as sess:
         for t in range(episode_length):
 
             # print the board out
-            if i_episode % 10 == 0:
+            if i_episode % 100 == 0:
                 print(env.board)
                 print('-'*10)
 
@@ -199,7 +211,8 @@ with tf.Session() as sess:
 
             # end game if finished
             if done:
-                print('\t\t(score,max tile) = ({},{})'.format(env.score,env.board.max()))
+                print('(score,max tile) = ({},{})'.format(env.score,
+                                                              env.board.max()))
                 break
 
         # log scores and rewards for game
