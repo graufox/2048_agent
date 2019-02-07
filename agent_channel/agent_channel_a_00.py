@@ -25,24 +25,19 @@ num_filters = 80
 
 # MODEL ARCHITECTURE
 
+# Input definition and preprocessing
 observation_input = tf.placeholder(tf.float32, shape=(1,4,4,16),
                                    name='observation_input')
-
-# 2D Convolutions on each separate layer
 input_reshape = tf.reshape(observation_input, shape=(1,4,4,16,1))
 input_reshape = tf.layers.batch_normalization(input_reshape)
+
+# 2D Convolutions on each separate tile's onehot encoded grid
 conv_2d = tf.layers.conv3d(input_reshape,
                  filters=64,
                  kernel_size=(3,3,1),
                  activation=tf.nn.relu,
                  padding='same')
 conv_2d = tf.layers.batch_normalization(conv_2d)
-# conv_2d = tf.layers.conv3d(conv_2d,
-#                  filters=64,
-#                  kernel_size=(2,2,1),
-#                  activation=tf.nn.relu,
-#                  padding='same')
-# conv_2d = tf.layers.batch_normalization(conv_2d)
 
 # 3D Convolutions
 conv_3d = tf.layers.conv3d(input_reshape,#conv_2d,
@@ -51,54 +46,14 @@ conv_3d = tf.layers.conv3d(input_reshape,#conv_2d,
                  activation=tf.nn.relu,
                  padding='same')
 conv_3d = tf.layers.batch_normalization(conv_3d)
-# conv_3d = tf.layers.conv3d(conv_3d,
-#                  filters=64,
-#                  kernel_size=(2,2,3),
-#                  activation=tf.nn.relu,
-#                  padding='same')
-# conv_3d = tf.layers.batch_normalization(conv_3d)
-# conv_3d = tf.layers.conv3d(conv_3d,
-#                  filters=64,
-#                  kernel_size=(2,2,3),
-#                  activation=tf.nn.relu,
-#                  padding='same')
-# conv_3d = tf.layers.batch_normalization(conv_3d)
-
-# # collapse to 2-D with channels
-# conv = tf.layers.conv3d(conv_3d,
-#                  filters=1,
-#                  kernel_size=(1,1,1),
-#                  activation=tf.nn.relu,
-#                  padding='same')
-# conv = tf.reshape(conv, shape=(1,4,4,16))
-# conv = tf.layers.conv2d(conv,
-#                         filters=128,
-#                         kernel_size=(3,3),
-#                         activation=tf.nn.relu,
-#                         padding='same')
-# conv = tf.layers.batch_normalization(conv)
-# conv = tf.layers.conv2d(conv,
-#                         filters=128,
-#                         kernel_size=(2,2),
-#                         activation=tf.nn.relu,
-#                         padding='same')
-# conv = tf.layers.batch_normalization(conv)
-# conv = tf.layers.conv2d(conv,
-#                         filters=128,
-#                         kernel_size=(2,2),
-#                         activation=tf.nn.relu,
-#                         padding='same')
-# conv = tf.layers.batch_normalization(conv)
-
 
 # combine and flatten
 conv_concat = tf.concat([input_reshape, conv_2d, conv_3d], axis=-1)
-conv_flatten = tf.reshape(conv_concat,
-                          shape=(1,-1))
+conv_flatten = tf.reshape(conv_concat, shape=(1,-1))
 
 # Dense block
 dense_1 = tf.layers.dense(conv_flatten,
-                          units=32,
+                          units=64,
                           activation=tf.nn.relu)
 dense_1 = tf.layers.batch_normalization(dense_1)
 
@@ -111,6 +66,10 @@ available_moves = tf.placeholder(tf.float32, shape=(1,4),
 Qout_ = Qout*available_moves
 predict = tf.argmax(Qout_, axis=1, name='prediction')
 maxQ = tf.reduce_max(Qout, axis=1)
+
+
+
+
 
 
 
@@ -140,8 +99,15 @@ scores = []
 rewards = []
 observations = []
 
-init = tf.global_variables_initializer()
 
+
+
+
+# TRAIN
+
+saver = tf.train.Saver()
+
+init = tf.global_variables_initializer()
 NAN = False
 
 print('Training DQN, please wait...')
@@ -149,6 +115,12 @@ with tf.Session() as sess:
 
     # initialize tensorflow variables for session
     sess.run(init)
+
+    # attempt to load old weights
+    try:
+        saver.restore(sess, "/tmp/model.ckpt")
+    except:
+        print('No model weights found, proceeding from scratch...')
 
     # iterate through a number of episodes
     for i_episode in range(num_episodes):
@@ -235,7 +207,11 @@ with tf.Session() as sess:
         if NAN:
             break
 
+        save_path = saver.save(sess, "/tmp/model.ckpt")
+
+
     # close session
+
 
 
 
