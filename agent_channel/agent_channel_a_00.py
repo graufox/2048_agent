@@ -211,6 +211,9 @@ with tf.Session() as sess:
 
             # end game if finished
             if done:
+                if i_episode % 100 == 0:
+                    print(env.board)
+                    print('-'*10)
                 print('(score,max tile) = ({},{})'.format(env.score,
                                                               env.board.max()))
                 break
