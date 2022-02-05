@@ -3,6 +3,8 @@ from numpy.random import rand, randn, randint
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
+tf.compat.v1.disable_eager_execution()
+
 from keras.backend import clip
 
 from game import Game
@@ -26,60 +28,60 @@ num_filters = 80
 # MODEL ARCHITECTURE
 
 # Input definition and preprocessing
-observation_input = tf.placeholder(tf.float32, shape=(1,4,4,16),
+observation_input = tf.compat.v1.placeholder(tf.float32, shape=(1,4,4,16),
                                    name='observation_input')
 input_reshape = tf.reshape(observation_input, shape=(1,4,4,16,1))
-input_reshape = tf.layers.batch_normalization(input_reshape)
+input_reshape = tf.compat.v1.layers.batch_normalization(input_reshape)
 
 # 2D Convolutions on each separate tile's onehot encoded grid
-conv_2d = tf.layers.conv3d(input_reshape,
+conv_2d = tf.compat.v1.layers.conv3d(input_reshape,
                  filters=16,
                  kernel_size=(3,3,1),
                  activation=tf.nn.relu,
                  padding='same')
-conv_2d = tf.layers.batch_normalization(conv_2d)
-conv_2d = tf.layers.conv3d(conv_2d,
+conv_2d = tf.compat.v1.layers.batch_normalization(conv_2d)
+conv_2d = tf.compat.v1.layers.conv3d(conv_2d,
                  filters=16,
                  kernel_size=(3,3,1),
                  activation=tf.nn.relu,
                  padding='same')
-conv_2d = tf.layers.batch_normalization(conv_2d)
+conv_2d = tf.compat.v1.layers.batch_normalization(conv_2d)
 
 # 3D Convolutions
-conv_3d = tf.layers.conv3d(input_reshape,#conv_2d,
+conv_3d = tf.compat.v1.layers.conv3d(input_reshape,#conv_2d,
                  filters=16,
                  kernel_size=(3,3,4),
                  activation=tf.nn.relu,
                  padding='same')
-conv_3d = tf.layers.batch_normalization(conv_3d)
-conv_3d = tf.layers.conv3d(conv_3d,#conv_2d,
+conv_3d = tf.compat.v1.layers.batch_normalization(conv_3d)
+conv_3d = tf.compat.v1.layers.conv3d(conv_3d,#conv_2d,
                  filters=16,
                  kernel_size=(3,3,4),
                  activation=tf.nn.relu,
                  padding='same')
-conv_3d = tf.layers.batch_normalization(conv_3d)
+conv_3d = tf.compat.v1.layers.batch_normalization(conv_3d)
 
 # combine and flatten
 conv_concat = tf.concat([input_reshape, conv_2d, conv_3d], axis=-1)
 conv_flatten = tf.reshape(conv_concat, shape=(1,-1))
 
 # Dense block
-dense_1 = tf.layers.dense(conv_flatten,
+dense_1 = tf.compat.v1.layers.dense(conv_flatten,
                           units=32,
                           activation=tf.nn.relu)#,
                           # kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
-dense_1 = tf.layers.batch_normalization(dense_1)
+dense_1 = tf.compat.v1.layers.batch_normalization(dense_1)
 
 
 # Output Q-values
-Qout = tf.layers.dense(dense_1, units=4,
+Qout = tf.compat.v1.layers.dense(dense_1, units=4,
                        activation=tf.nn.softplus,
-                       activity_regularizer=tf.contrib.layers.l1_regularizer(1e-5))
-available_moves = tf.placeholder(tf.float32, shape=(1,4),
+                       activity_regularizer=tf.keras.regularizers.l1(1e-5))
+available_moves = tf.compat.v1.placeholder(tf.float32, shape=(1,4),
                                  name='available_moves')
 Qout_ = Qout*available_moves
-predict = tf.argmax(Qout_, axis=1, name='prediction')
-maxQ = tf.reduce_max(Qout, axis=1, name='maxQ')
+predict = tf.argmax(input=Qout_, axis=1, name='prediction')
+maxQ = tf.reduce_max(input_tensor=Qout, axis=1, name='maxQ')
 
 
 
@@ -91,20 +93,20 @@ maxQ = tf.reduce_max(Qout, axis=1, name='maxQ')
 
 # for updating the network
 # placeholders we'll need for calculation
-nextQ = tf.placeholder(tf.float32, shape=(1,4), name='nextQ')
-reward_ = tf.placeholder(tf.float32, shape=(1,), name='reward_')
-fam_ = tf.placeholder(tf.float32, shape=(1,), name='fam_')
-action_ = tf.placeholder(tf.int32, shape=(1,), name='action_')
+nextQ = tf.compat.v1.placeholder(tf.float32, shape=(1,4), name='nextQ')
+reward_ = tf.compat.v1.placeholder(tf.float32, shape=(1,), name='reward_')
+fam_ = tf.compat.v1.placeholder(tf.float32, shape=(1,), name='fam_')
+action_ = tf.compat.v1.placeholder(tf.int32, shape=(1,), name='action_')
 pickedQ = Qout[:,action_[0]]
 
 # loss definition
-loss = tf.reduce_sum(-tf.log(clip(pickedQ,1e-1,np.inf))*reward_)
-loss += tf.reduce_sum(tf.abs(Qout-nextQ))
+loss = tf.reduce_sum(input_tensor=-tf.math.log(clip(pickedQ,1e-1,np.inf))*reward_)
+loss += tf.reduce_sum(input_tensor=tf.abs(Qout-nextQ))
 #loss += tf.reduce_sum((tf.log(clip(Qout,1e-3,np.inf)+1)-tf.log(clip(nextQ,1e-3,np.inf)+1))**2+1)
-loss += 1e-2 * tf.reduce_sum(Qout**2) # regularize output
+loss += 1e-2 * tf.reduce_sum(input_tensor=Qout**2) # regularize output
 
 # optimizer
-optim = tf.train.AdamOptimizer(learning_rate=learning_rate, name='optim')
+optim = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate, name='optim')
 train_step = optim.minimize(loss, name='train_step')
 
 
@@ -119,13 +121,13 @@ observations = []
 
 # TRAIN
 
-saver = tf.train.Saver()
+saver = tf.compat.v1.train.Saver()
 
-init = tf.global_variables_initializer()
+init = tf.compat.v1.global_variables_initializer()
 NAN = False
 
 print('Training DQN, please wait...')
-with tf.Session() as sess:
+with tf.compat.v1.Session() as sess:
 
     # initialize tensorflow variables for session
     sess.run(init)
