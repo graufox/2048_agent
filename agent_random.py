@@ -30,38 +30,44 @@ rewards = []
 observations = []
 
 # iterate through a number of episodes
-for i_episode in range(num_episodes):
 
-    if i_episode % 10 == 0:
-        print('\tepisode {}'.format(i_episode))
-        print('\t\t{}'.format(np.mean(scores[-10:])))
+try:
 
-    # start with a fresh environment
-    observation = env.reset()
+    for i_episode in range(num_episodes):
 
-    # run the simulation
-    episode_reward = 0
-    for t in range(episode_length):
+        if i_episode % 10 == 0:
+            print('\tepisode {}'.format(i_episode))
+            print('\t\t{}'.format(np.mean(scores[-10:])))
 
-        # if i_episode % 10 == 0:
-        #     print(env.board)
-        #     print('-'*10)
+        # start with a fresh environment
+        observation = env.reset()
 
-        # choose random action
-        action = [randint(4)]
+        # run the simulation
+        episode_reward = 0
+        for t in range(episode_length):
 
-        # make a step in the environment
-        new_observation, reward, done, info = env.step(action[0])
-        episode_reward += reward
+            # if i_episode % 10 == 0:
+            #     print(env.board)
+            #     print('-'*10)
 
-        observation = new_observation
-        observations += [new_observation]
+            # choose random action
+            action = [randint(4)]
 
-        if done:
-            break
+            # make a step in the environment
+            new_observation, reward, done, info = env.step(action[0])
+            episode_reward += reward
 
-    scores += [env.score]
-    rewards += [episode_reward]
+            observation = new_observation
+            observations += [new_observation]
+
+            if done:
+                break
+
+        scores += [env.score]
+        rewards += [episode_reward]
+
+except KeyboardInterrupt:
+    print('simulation aborted')
 
 observations = np.stack(observations)
 scores = np.array(scores)
