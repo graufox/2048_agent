@@ -38,34 +38,27 @@ class Game:
         for j in range(4):
 
             # extract the non-zero elements in order
-            squished_col = self.board[self.board[:, j] > 0, j]
+            col = self.board[:, j]
+            squished_col = col[col > 0].tolist()
             # print(squished_col)
             # calculate the number of blank spots
             num_blanks = 4 - len(squished_col)
 
             # find matches, starting from the end
-            col = self.board[:, j]
-            new_col = []
-
-            # if the column isn't blank
-            if len(squished_col) > 0:
-                k = len(squished_col) - 1
-                while k >= 0:
-                    if squished_col[k] == squished_col[k - 1] and k > 0:
-                        new_col += [2 * squished_col[k]]
-                        if not testing:
-                            self.score += 2 * squished_col[k]
-                        num_blanks += 1
-                        k -= 1
-                    else:
-                        new_col += [squished_col[k]]
-                    k -= 1
-            # otherwise make it a blank list
-            else:
-                new_col = []
-
-            # pad the top of the new column with blank tiles
-            new_col = ([0] * num_blanks) + new_col[::-1]
+            new_col_reversed = []
+            while len(squished_col) > 1:
+                val = squished_col[-1]
+                val_above = squished_col[-2]
+                if val == val_above:
+                    new_col_reversed.append(2 * val)
+                    self.score += 2 * val
+                    squished_col.pop()
+                else:
+                    new_col_reversed.append(val)
+                squished_col.pop()
+            new_col_reversed += squished_col[::-1]
+            new_col_reversed += [0] * (4 - len(new_col_reversed))
+            new_col = new_col_reversed[::-1]
 
             # update the column
             new_board[:, j] = new_col
