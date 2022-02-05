@@ -36,31 +36,31 @@ input_reshape = tf.compat.v1.layers.batch_normalization(input_reshape)
 # 2D Convolutions on each separate tile's onehot encoded grid
 conv_2d = tf.compat.v1.layers.conv3d(
     input_reshape,
-    filters=16,
+    filters=32,
     kernel_size=(3, 3, 1),
-    activation=tf.nn.relu,
+    activation=tf.nn.leaky_relu,
     padding="same",
 )
 conv_2d = tf.compat.v1.layers.batch_normalization(conv_2d)
 conv_2d = tf.compat.v1.layers.conv3d(
-    conv_2d, filters=16, kernel_size=(3, 3, 1), activation=tf.nn.relu, padding="same"
+    conv_2d, filters=32, kernel_size=(3, 3, 1), activation=tf.nn.leaky_relu, padding="same"
 )
 conv_2d = tf.compat.v1.layers.batch_normalization(conv_2d)
 
 # 3D Convolutions
 conv_3d = tf.compat.v1.layers.conv3d(
     input_reshape,  # conv_2d,
-    filters=16,
-    kernel_size=(3, 3, 4),
-    activation=tf.nn.relu,
+    filters=32,
+    kernel_size=(3, 3, 3),
+    activation=tf.nn.leaky_relu,
     padding="same",
 )
 conv_3d = tf.compat.v1.layers.batch_normalization(conv_3d)
 conv_3d = tf.compat.v1.layers.conv3d(
     conv_3d,  # conv_2d,
-    filters=16,
-    kernel_size=(3, 3, 4),
-    activation=tf.nn.relu,
+    filters=32,
+    kernel_size=(3, 3, 3),
+    activation=tf.nn.leaky_relu,
     padding="same",
 )
 conv_3d = tf.compat.v1.layers.batch_normalization(conv_3d)
@@ -70,7 +70,7 @@ conv_concat = tf.concat([input_reshape, conv_2d, conv_3d], axis=-1)
 conv_flatten = tf.reshape(conv_concat, shape=(1, -1))
 
 # Dense block
-dense_1 = tf.compat.v1.layers.dense(conv_flatten, units=32, activation=tf.nn.relu)  # ,
+dense_1 = tf.compat.v1.layers.dense(conv_flatten, units=32, activation=tf.nn.leaky_relu)  # ,
 # kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
 dense_1 = tf.compat.v1.layers.batch_normalization(dense_1)
 
