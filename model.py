@@ -14,7 +14,7 @@ class DenseStack(layers.Layer):
             units=units, activation=activation
         )
         self.bn_layer = layers.BatchNormalization()
-        self.dropout_layer = layers.SpatialDropout3D(dropout_rate)
+        self.dropout_layer = layers.Dropout(dropout_rate)
 
     def call(self, inputs, training=False):
         x = self.dense_layer(inputs)
