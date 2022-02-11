@@ -168,12 +168,6 @@ class Game:
             self.slide_left()
 
         reward = self.score - old_score
-        # if reward < 0.1: # if no score increase, dock points
-        #     reward -= 2
-        # if (self.board == self.last_board).all():
-        #     reward -= 64
-        # if self.is_done():
-        #     reward -= 2**10
         if not self.is_done():
             self.last_board = self.board
 
