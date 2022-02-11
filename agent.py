@@ -92,8 +92,6 @@ log_Qout = tf.keras.layers.Dense(
 )(dense_1)
 Qout = tf.math.exp(log_Qout)
 Qout_ = Qout * available_moves
-predict = tf.argmax(input=Qout_, axis=1, name="prediction")
-maxQ = tf.reduce_max(input_tensor=Qout_, axis=1, name="maxQ")
 
 
 # OPTIMIZATION SETUP
