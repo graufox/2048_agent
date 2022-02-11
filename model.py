@@ -2,6 +2,27 @@ import tensorflow as tf
 from tensorflow.keras import layers
 
 
+class DenseStack(layers.Layer):
+    def __init__(
+        self,
+        units=1024,
+        activation=tf.nn.leaky_relu,
+        dropout_rate=0.2,
+    ):
+        super().__init__()
+        self.dense_layer = layers.Dense(
+            units=units, activation=activation
+        )
+        self.bn_layer = layers.BatchNormalization()
+        self.dropout_layer = layers.SpatialDropout3D(dropout_rate)
+
+    def call(self, inputs, training=False):
+        x = self.dense_layer(inputs)
+        x_bn = self.bn_layer(x, training=training)
+        x_do = self.dropout_layer(x_bn, training=training)
+        return x_do
+
+
 class Conv2DStack(layers.Layer):
     def __init__(
         self,
