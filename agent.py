@@ -167,6 +167,7 @@ try:
 
                 # sample an action according to Q-values
                 p = softmax(Qvals[0]) * moves[0]
+                p = p / p.sum()
                 try:
                     action = [np.random.choice([0, 1, 2, 3], p=p)]
                 except ValueError:
