@@ -150,14 +150,13 @@ observations = []
 saver = tf.compat.v1.train.Saver()
 
 init = tf.compat.v1.global_variables_initializer()
-NAN = False
 
 print("Training DQN, please wait...")
 
 
 def rotate_board_and_action_left(board, action, available_moves):
     rotated_board = np.rot90(board)
-    rotated_action = action - 1 % 4
+    rotated_action = (action - 1) % 4
     rotated_available_moves = np.roll(available_moves, -1)
     return rotated_board, rotated_action, rotated_available_moves
 
@@ -168,23 +167,8 @@ try:
         # initialize tensorflow variables for session
         sess.run(init)
 
-        # # attempt to load old weights
-        # try:
-        #     saver.restore(sess, "/tmp/model.ckpt")
-        #     print("Weights loaded...")
-        # except:
-        #     print("No model weights found, proceeding from scratch...")
-
         # iterate through a number of episodes
         for i_episode in range(num_episodes):
-
-            # if i_episode % 10 == 0 and i_episode > 0:
-            #     print(
-            #         "\t\taverage from {} to {}: {}".format(
-            #             i_episode - 10, i_episode - 1, np.mean(scores[-10:])
-            #         )
-            #     )
-            # print("\tepisode {}  ---  ".format(i_episode), end="")
 
             # start with a fresh environment
             observation = env.reset()
@@ -215,8 +199,7 @@ try:
                 if np.isnan(Qvals).any():
                     print("NaN encountered; breaking")
                     ic(Qvals)
-                    NAN = True
-                    break
+                    raise ValueError
 
                 # sample an action according to Q-values
                 p = softmax(Qvals[0]) * moves[0]
@@ -293,7 +276,9 @@ try:
                         print(env.board)
                         print("-" * 10)
                     print(
-                        "(score,max tile) = ({},{})".format(env.score, env.board.max())
+                        "(score,max tile) = ({},{})".format(
+                            env.score, env.board.max()
+                        )
                     )
                     break
 
@@ -301,10 +286,12 @@ try:
             scores += [env.score]
             rewards += [episode_reward]
 
-            save_path = saver.save(sess, "/tmp/model.ckpt")
+            # save_path = saver.save(sess, "/tmp/model.ckpt")
 
 except KeyboardInterrupt:
     print("aborted by user")
+except ValueError as e:
+    print(f"value error: {e[:100]}")
 
 # display statistics
 observations = np.stack(observations)
