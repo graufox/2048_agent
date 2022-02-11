@@ -7,17 +7,18 @@ tf.compat.v1.disable_eager_execution()
 
 from icecream import ic
 
-from model import Conv2DStack
+from model import Conv2DStack, Conv3DStack
 from game import Game
 from funcs import ema
 
 
 # define environment, in this case a game of 2048
-env = Game()
+BOARD_SIZE = 4
+env = Game(board_size=BOARD_SIZE)
 
 # make model for Q
 # set hyperparameters
-num_episodes = 1000  # number of "games" to train the agent with
+num_episodes = 10000  # number of "games" to train the agent with
 episode_length = 2**20  # max number of moves per game
 
 learning_rate = 1e-4
@@ -27,58 +28,74 @@ gamma = 0.955  # the discount rate of future reward
 # MODEL ARCHITECTURE
 
 # Input definition and preprocessing
-observation_input = tf.compat.v1.placeholder(
-    tf.float32, shape=(1, 4, 4, 16), name="observation_input"
+training_flag = tf.compat.v1.placeholder(
+    bool, shape=(), name="training_flag"
 )
-input_reshape = tf.keras.layers.BatchNormalization()(observation_input)
-input_reshape = Conv2DStack(
-    filters=32,
+observation_input = tf.compat.v1.placeholder(
+    tf.float32, shape=(1, BOARD_SIZE, BOARD_SIZE, 16), name="observation_input"
+)
+input_bn = tf.keras.layers.BatchNormalization()(observation_input, training=training_flag)
+# preproc = tf.keras.layers.Reshape((BOARD_SIZE, BOARD_SIZE, 16, 1))(input_bn)
+# preproc = Conv3DStack(
+#     filters=64,
+#     kernel_size=(1, 1, 5),
+#     activation=tf.nn.leaky_relu,
+#     padding="valid",
+#     dropout_rate=0.
+# )(preproc)
+# preproc = tf.keras.layers.Reshape((BOARD_SIZE, BOARD_SIZE, -1))(preproc)
+# preproc = Conv2DStack(
+#     filters=64,
+#     kernel_size=(1, 1),
+#     activation=tf.nn.leaky_relu,
+#     padding="same",
+#     dropout_rate=0.
+# )(preproc)
+
+preproc = Conv2DStack(
+    filters=64,
     kernel_size=(1, 1),
     activation=tf.nn.leaky_relu,
     padding="same",
-    dropout_rate=0.2
-)(input_reshape)
+    dropout_rate=0.
+)(input_bn, training=training_flag)
 
 # 2D Convolutions on each separate tile's onehot encoded grid
 conv_2d_a = Conv2DStack(
-    filters=32,
+    filters=64,
     kernel_size=(3, 3),
     activation=tf.nn.leaky_relu,
     padding="same",
     dropout_rate=0.2
-)(input_reshape)
-# conv_2d_a = Conv2DStack(
-#     filters=64,
-#     kernel_size=(3, 3),
-#     activation=tf.nn.leaky_relu,
-#     padding="same",
-#     dropout_rate=0.2
-# )(conv_2d_a)
-# conv_2d_b = Conv2DStack(
-#     filters=32,
-#     kernel_size=(3, 3),
-#     activation=tf.nn.leaky_relu,
-#     padding="same",
-#     dropout_rate=0.2
-# )(input_reshape)
-# conv_2d_b = Conv2DStack(
-#     filters=64,
-#     kernel_size=(3, 3),
-#     activation=tf.nn.leaky_relu,
-#     padding="same",
-#     dropout_rate=0.2
-# )(conv_2d_b)
-conv_2d = tf.keras.layers.MultiHeadAttention(num_heads=2, key_dim=3)(input_reshape, conv_2d_a)
-conv_flatten = tf.keras.layers.Flatten()(conv_2d)
+)(preproc, training=training_flag)
+conv_2d_a = Conv2DStack(
+    filters=64,
+    kernel_size=(3, 3),
+    activation=tf.nn.leaky_relu,
+    padding="same",
+    dropout_rate=0.2
+)(conv_2d_a, training=training_flag) + conv_2d_a
+conv_2d_a = Conv2DStack(
+    filters=64,
+    kernel_size=(3, 3),
+    activation=tf.nn.leaky_relu,
+    padding="same",
+    dropout_rate=0.2
+)(conv_2d_a, training=training_flag) + conv_2d_a
+# conv_flatten = tf.keras.layers.GlobalMaxPool2D()(conv_2d_a)
+# conv_flatten = tf.keras.layers.BatchNormalization()(conv_flatten)
+# conv_flatten = tf.keras.layers.Dropout(0.2)(conv_flatten)
+conv_flatten = tf.keras.layers.Flatten()(conv_2d_a)
 
-# Dense block
-dense_1 = tf.keras.layers.Dense(units=1024, activation=tf.nn.leaky_relu)(conv_flatten)
-dense_1 = tf.keras.layers.BatchNormalization()(dense_1)
-dense_1 = tf.keras.layers.Dropout(0.2)(dense_1)
+
+# # Dense block
+# dense_1 = tf.keras.layers.Dense(units=1024, activation=tf.nn.leaky_relu)(conv_flatten)
+# dense_1 = tf.keras.layers.BatchNormalization()(dense_1)
+# dense_1 = tf.keras.layers.Dropout(0.2)(dense_1)
 
 dense_1 = tf.keras.layers.Dense(units=1024, activation=tf.nn.leaky_relu)(conv_flatten)
-dense_1 = tf.keras.layers.BatchNormalization()(dense_1)
-dense_1 = tf.keras.layers.Dropout(0.2)(dense_1)
+dense_1 = tf.keras.layers.BatchNormalization()(dense_1, training=training_flag)
+dense_1 = tf.keras.layers.Dropout(0.2)(dense_1, training=training_flag)
 
 # Output Q-values
 log_Qout = tf.keras.layers.Dense(
@@ -86,7 +103,7 @@ log_Qout = tf.keras.layers.Dense(
     activation=None,
 )(dense_1)
 Qout = tf.math.exp(log_Qout)
-Qout = tf.keras.backend.clip(Qout, 0., 100.)
+# Qout = tf.keras.backend.clip(Qout, 0., 100.)
 available_moves = tf.compat.v1.placeholder(
     tf.float32, shape=(1, 4), name="available_moves"
 )
@@ -136,12 +153,12 @@ try:
         # initialize tensorflow variables for session
         sess.run(init)
 
-        # attempt to load old weights
-        try:
-            saver.restore(sess, "/tmp/model.ckpt")
-            print("Weights loaded...")
-        except:
-            print("No model weights found, proceeding from scratch...")
+        # # attempt to load old weights
+        # try:
+        #     saver.restore(sess, "/tmp/model.ckpt")
+        #     print("Weights loaded...")
+        # except:
+        #     print("No model weights found, proceeding from scratch...")
 
         # iterate through a number of episodes
         for i_episode in range(num_episodes):
@@ -175,6 +192,7 @@ try:
                     feed_dict={
                         observation_input: np.array([observation]),
                         available_moves: moves,
+                        training_flag: False
                     },
                 )
 
@@ -201,8 +219,8 @@ try:
 
                 # make a step in the environment
                 new_observation, reward, done, info = env.step(action[0])
-                episode_reward += reward
-                reward = np.log(reward + 1.) / np.log(2.)
+                episode_reward += np.log(reward + 1.)
+                # reward = np.log(reward + 1.) / np.log(2.)
 
                 # get Q value for new state
                 new_moves = env.available_moves()
@@ -212,6 +230,7 @@ try:
                         observation_input: np.array([new_observation]),
                         reward_: [reward],
                         available_moves: new_moves,
+                        training_flag: False
                     },
                 )[0]
                 # compute the target Q-values
@@ -231,6 +250,7 @@ try:
                         reward_: [reward],
                         action_: action,
                         available_moves: moves,
+                        training_flag: True
                     },
                 )
 

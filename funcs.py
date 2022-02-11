@@ -22,7 +22,7 @@ def ema(data, a):
         return -1
 
 
-def board_2_array(board):
+def board_2_array(board, board_size=4):
     """
     outputs a 4 x 4 x 16 array with one-hot encodings for the tiles
         board  = 4 x 4 numpy array of tile values associated to board
@@ -30,9 +30,9 @@ def board_2_array(board):
     try:
         if len(board.shape) == 2:
             channels = []
-            channels += [np.zeros(shape=(4, 4)) == board]
+            channels += [np.zeros(shape=(board_size, board_size)) == board]
             for i in range(1, 16):
-                channels += [np.ones(shape=(4, 4)) * (2**i) == board]
+                channels += [np.ones(shape=(board_size, board_size)) * (2**i) == board]
             return np.stack(channels, axis=-1)
         else:
             print("\terror: data must be a 2-D numpy array")

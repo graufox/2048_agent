@@ -1,7 +1,38 @@
+from funcs import board_2_array
+
 import numpy as np
+from icecream import ic
 from numpy.random import rand, randint
 
-from funcs import board_2_array
+
+def slide_column_down(column, return_score=True):
+    """
+    Slide a column downwards, assuming index 0 is at the top.
+    """
+
+    squished_column = [value for value in column if value > 0]
+
+    new_column = []
+    score = 0
+    idx = len(squished_column) - 1
+    while idx >= 0:
+        value = squished_column[idx]
+        if idx >= 1:
+            value_above = squished_column[idx - 1]
+            if value == value_above:
+                new_column.append(2 * value)
+                score += 2 * value
+                idx -= 1
+            else:
+                new_column.append(value)
+        else:
+            new_column.append(value)
+        idx -= 1
+    new_column = [0] * (len(column) - len(new_column)) + new_column[::-1]
+    if return_score:
+        return new_column, score
+    else:
+        return new_column
 
 
 class Game:
@@ -11,8 +42,9 @@ class Game:
     python class for the game 2048
     """
 
-    def __init__(self):
-        self.board = np.zeros((4, 4), dtype=np.int32)
+    def __init__(self, board_size=4):
+        self.board_size = board_size
+        self.board = np.zeros((board_size, board_size), dtype=np.int32)
         self.score = 0
         self.num_moves = 0
 
@@ -24,44 +56,24 @@ class Game:
     def refresh_board(self):
         """resets the board and places a tile randomly"""
         # clear the board
-        self.board = np.zeros((4, 4), dtype=np.int32)
+        self.board = np.zeros((self.board_size, self.board_size), dtype=np.int32)
         # put a 2 in a random place on the board
-        i, j = randint(4), randint(4)
+        i, j = randint(self.board_size), randint(self.board_size)
         self.board[i, j] = 2
 
     def slide_down(self, testing=False):
         """slides the tiles downward, combining as necessary"""
         # in each column, move the pieces downward
-        new_board = np.zeros(self.board.shape, dtype=np.int32)
+        new_board = np.zeros((self.board_size, self.board_size), dtype=np.int32)
 
         # for each column:
-        for j in range(4):
-
-            # extract the non-zero elements in order
+        for j in range(self.board_size):
             col = self.board[:, j]
-            squished_col = col[col > 0].tolist()
-            # print(squished_col)
-            # calculate the number of blank spots
-            num_blanks = 4 - len(squished_col)
-
-            # find matches, starting from the end
-            new_col_reversed = []
-            while len(squished_col) > 1:
-                val = squished_col[-1]
-                val_above = squished_col[-2]
-                if val == val_above:
-                    new_col_reversed.append(2 * val)
-                    self.score += 2 * val
-                    squished_col.pop()
-                else:
-                    new_col_reversed.append(val)
-                squished_col.pop()
-            new_col_reversed += squished_col[::-1]
-            new_col_reversed += [0] * (4 - len(new_col_reversed))
-            new_col = new_col_reversed[::-1]
-
+            new_col, reward = slide_column_down(col, return_score=True)
             # update the column
             new_board[:, j] = new_col
+            if not testing:
+                self.score += reward
 
         # if we have the same board, don't increase
         #   the number of steps taken or add a new tile
@@ -87,8 +99,8 @@ class Game:
         total_blanks = (self.board == 0).sum()
         if total_blanks > 0:
             blank_ids = []
-            for i in range(4):
-                for j in range(4):
+            for i in range(self.board_size):
+                for j in range(self.board_size):
                     if self.board[i, j] == 0:
                         blank_ids += [(i, j)]
             pos = blank_ids[randint(len(blank_ids))]
@@ -138,7 +150,7 @@ class Game:
         self.refresh_board()
         self.score = 0
         self.num_moves = 0
-        return board_2_array(self.board)
+        return board_2_array(self.board, self.board_size)
 
     def step(self, action):
         """for openai gym"""
@@ -164,12 +176,12 @@ class Game:
         if not self.is_done():
             self.last_board = self.board
 
-        return board_2_array(self.board), reward, self.is_done(), {}
+        return board_2_array(self.board, self.board_size), reward, self.is_done(), {}
 
 
 if __name__ == "__main__":
 
-    g = Game()
+    g = Game(board_size=4)
     g.board = np.array(
         [[0, 0, 0, 0], [0, 2, 0, 0], [0, 2, 0, 0], [0, 2, 0, 0]], dtype=np.int32
     )
