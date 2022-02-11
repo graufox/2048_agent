@@ -102,10 +102,7 @@ class ReinforcementAgent(tf.keras.models.Model):
         x = self.dense(x, training=training)
         unmasked_logQ = self.compute_unmasked_logQ(x)
         Q = tf.math.exp(unmasked_logQ) * available_moves
-        self.add_loss(1e-1 * tf.reduce_max(Q)**2)
-        # TODO: loss definition
-        # # loss = tf.reduce_sum(-log_pickedQ * reward_)
-        # # loss += tf.reduce_sum(tf.abs(Qout - nextQ))
+        # self.add_loss(1e-1 * tf.reduce_max(Q)**2)
         return Q
 
     @tf.function
