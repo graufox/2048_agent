@@ -101,7 +101,6 @@ maxQ = tf.reduce_max(input_tensor=Qout_, axis=1, name="maxQ")
 # placeholders we'll need for calculation
 nextQ = tf.compat.v1.placeholder(tf.float32, shape=(1, 4), name="nextQ")
 reward_ = tf.compat.v1.placeholder(tf.float32, shape=(1,), name="reward_")
-fam_ = tf.compat.v1.placeholder(tf.float32, shape=(1,), name="fam_")
 action_ = tf.compat.v1.placeholder(tf.int32, shape=(1,), name="action_")
 log_pickedQ = log_Qout[:, action_[0]]
 
@@ -122,8 +121,6 @@ observations = []
 
 
 # TRAIN
-
-saver = tf.compat.v1.train.Saver()
 
 init = tf.compat.v1.global_variables_initializer()
 
