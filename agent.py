@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.random import rand, randn, randint
 import matplotlib.pyplot as plt
+from scipy.special import softmax
 import tensorflow as tf
 
 tf.compat.v1.disable_eager_execution()
@@ -212,14 +213,7 @@ try:
                     break
 
                 # sample an action according to Q-values
-                temp = (Qvals[0] - Qvals[0].min()) * moves[0]
-                if temp.max() > 100:
-                    p = temp[0] / temp[0].sum()
-                else:
-                    p = np.exp(temp)[0] * moves[0]
-                if p.sum() < 1e-5:
-                    p = p > 0
-                p = p / p.sum()
+                p = softmax(Qvals[0]) * moves[0]
                 try:
                     action = [np.random.choice([0, 1, 2, 3], p=p)]
                 except ValueError:
@@ -232,14 +226,18 @@ try:
 
                 # get Q value for new state
                 for _ in range(4):
+
+                    # rotate previous board
                     rotated_old_board, rotated_action, rotated_old_moves = \
                         rotate_board_and_action_left(observation, action[0], moves)
                     rotated_action = [rotated_action]
 
+                    # rotate new board
                     new_moves = env.available_moves()
                     rotated_new_board, _, rotated_new_moves = \
                         rotate_board_and_action_left(new_observation, action[0], new_moves)
 
+                    # get Q-values for actions in new state
                     Q1 = sess.run(
                         [Qout_],
                         feed_dict={
@@ -256,7 +254,7 @@ try:
                     if not done:
                         targetQ[0][0, action[0]] = reward + gamma * maxQ1
                     else:
-                        targetQ[0][0, action[0]] = reward
+                        targetQ[0][0, action[0]] = -1 #reward
 
                     # backpropagate error between predicted and new Q values for state
                     sess.run(
