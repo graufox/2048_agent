@@ -71,13 +71,27 @@ class Conv3DStack(layers.Layer):
 
 class ReinforcementAgent(tf.keras.models.Model):
     def __init__(
-        self
+        self,
+        conv_filters=128,
+        conv_dropout=0.2,
+        dense_units=1024,
+        dense_dropout=0.5,
+        kernel_size=(3, 3)
     ):
         super().__init__()
-        self.preproc = Conv2DStack(kernel_size=(1, 1), dropout_rate=0.)
-        self.conv = Conv2DStack(kernel_size=(3, 3), dropout_rate=0.5)
+
+        self.preproc = Conv2DStack(
+            filters=conv_filters,
+            kernel_size=(1, 1),
+            dropout_rate=0.
+        )
+        self.conv = Conv2DStack(
+            filters=conv_filters,
+            kernel_size=kernel_size,
+            dropout_rate=conv_dropout
+        )
         self.flatten = layers.Flatten()
-        self.dense = DenseStack(units=1024, dropout_rate=0.5)
+        self.dense = DenseStack(units=dense_units, dropout_rate=dense_dropout)
         self.compute_unmasked_logQ = DenseStack(units=4, dropout_rate=0.)
 
     def call(self, inputs, training=False):
