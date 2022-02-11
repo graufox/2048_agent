@@ -36,22 +36,6 @@ observation_input = tf.compat.v1.placeholder(
 input_bn = tf.keras.layers.BatchNormalization()(
     observation_input, training=training_flag
 )
-# preproc = tf.keras.layers.Reshape((BOARD_SIZE, BOARD_SIZE, 16, 1))(input_bn)
-# preproc = Conv3DStack(
-#     filters=64,
-#     kernel_size=(1, 1, 5),
-#     activation=tf.nn.leaky_relu,
-#     padding="valid",
-#     dropout_rate=0.
-# )(preproc)
-# preproc = tf.keras.layers.Reshape((BOARD_SIZE, BOARD_SIZE, -1))(preproc)
-# preproc = Conv2DStack(
-#     filters=64,
-#     kernel_size=(1, 1),
-#     activation=tf.nn.leaky_relu,
-#     padding="same",
-#     dropout_rate=0.
-# )(preproc)
 
 preproc = Conv2DStack(
     filters=64,
@@ -89,17 +73,10 @@ conv_2d_a = (
     )(conv_2d_a, training=training_flag)
     + conv_2d_a
 )
-# conv_flatten = tf.keras.layers.GlobalMaxPool2D()(conv_2d_a)
-# conv_flatten = tf.keras.layers.BatchNormalization()(conv_flatten)
-# conv_flatten = tf.keras.layers.Dropout(0.2)(conv_flatten)
 conv_flatten = tf.keras.layers.Flatten()(conv_2d_a)
 
 
-# # Dense block
-# dense_1 = tf.keras.layers.Dense(units=1024, activation=tf.nn.leaky_relu)(conv_flatten)
-# dense_1 = tf.keras.layers.BatchNormalization()(dense_1)
-# dense_1 = tf.keras.layers.Dropout(0.2)(dense_1)
-
+# Dense block
 dense_1 = tf.keras.layers.Dense(units=1024, activation=tf.nn.leaky_relu)(conv_flatten)
 dense_1 = tf.keras.layers.BatchNormalization()(dense_1, training=training_flag)
 dense_1 = tf.keras.layers.Dropout(0.2)(dense_1, training=training_flag)
@@ -110,7 +87,6 @@ log_Qout = tf.keras.layers.Dense(
     activation=None,
 )(dense_1)
 Qout = tf.math.exp(log_Qout)
-# Qout = tf.keras.backend.clip(Qout, 0., 100.)
 available_moves = tf.compat.v1.placeholder(
     tf.float32, shape=(1, 4), name="available_moves"
 )
