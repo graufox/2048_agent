@@ -128,7 +128,7 @@ print("Training DQN, please wait...")
 # set up lists for keeping track of progress
 scores = []
 rewards = []
-observations = []
+# observations = []
 
 try:
     with tf.compat.v1.Session() as sess:
@@ -139,8 +139,8 @@ try:
 
             # start with a fresh environment
             observation = env.reset()
-            if all([(observation != x).any() for x in observations]):
-                observations += [observation]
+            # if all([(observation != x).any() for x in observations]):
+                # observations += [observation]
 
             # run the simulation
             episode_reward = 0
@@ -180,7 +180,15 @@ try:
                 episode_reward += reward
                 reward = np.log(reward + 1.0) / np.log(2.0)
 
+                new_moves = env.available_moves()
+
                 # get Q value for new state
+                rotated_old_board = observation.copy()
+                rotated_action = action.copy()
+                rotated_old_moves = moves.copy()
+                rotated_new_board = new_observation.copy()
+                rotated_new_moves = new_moves.copy()
+
                 for _ in range(4):
 
                     # rotate previous board
@@ -188,17 +196,22 @@ try:
                         rotated_old_board,
                         rotated_action,
                         rotated_old_moves,
-                    ) = rotate_board_and_action_left(observation, action[0], moves)
+                    ) = rotate_board_and_action_left(
+                        rotated_old_board,
+                        rotated_action[0],
+                        rotated_old_moves
+                    )
                     rotated_action = [rotated_action]
 
                     # rotate new board
-                    new_moves = env.available_moves()
                     (
                         rotated_new_board,
                         _,
                         rotated_new_moves,
                     ) = rotate_board_and_action_left(
-                        new_observation, action[0], new_moves
+                        rotated_new_board,
+                        rotated_action[0],
+                        rotated_new_moves
                     )
 
                     # get Q-values for actions in new state
@@ -206,7 +219,7 @@ try:
                         [Qout_],
                         feed_dict={
                             observation_input: np.array([rotated_new_board]),
-                            reward_: [reward],
+                            # reward_: [reward],
                             available_moves: rotated_new_moves,
                             training_flag: False,
                         },
@@ -235,7 +248,7 @@ try:
 
                 # log observations
                 observation = new_observation
-                observations += [new_observation]
+                # observations += [new_observation]
 
                 # end game if finished
                 if done:
