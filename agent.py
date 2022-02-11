@@ -147,6 +147,14 @@ NAN = False
 
 print("Training DQN, please wait...")
 
+
+def rotate_board_and_action_left(board, action, available_moves):
+    rotated_board = np.rot90(board)
+    rotated_action = action - 1 % 4
+    rotated_available_moves = np.roll(available_moves, -1)
+    return rotated_board, rotated_action, rotated_available_moves
+
+
 try:
     with tf.compat.v1.Session() as sess:
 
@@ -223,36 +231,45 @@ try:
                 # reward = np.log(reward + 1.) / np.log(2.)
 
                 # get Q value for new state
-                new_moves = env.available_moves()
-                Q1 = sess.run(
-                    [Qout_],
-                    feed_dict={
-                        observation_input: np.array([new_observation]),
-                        reward_: [reward],
-                        available_moves: new_moves,
-                        training_flag: False
-                    },
-                )[0]
-                # compute the target Q-values
-                maxQ1 = np.max(Q1)
-                targetQ = Qvals
-                if not done:
-                    targetQ[0][0, action[0]] = reward + gamma * maxQ1
-                else:
-                    targetQ[0][0, action[0]] = reward
+                for _ in range(4):
+                    rotated_old_board, rotated_action, rotated_old_moves = \
+                        rotate_board_and_action_left(observation, action[0], moves)
+                    rotated_action = [rotated_action]
 
-                # backpropagate error between predicted and new Q values for state
-                sess.run(
-                    [train_step],
-                    feed_dict={
-                        observation_input: np.array([observation]),
-                        nextQ: targetQ[0],
-                        reward_: [reward],
-                        action_: action,
-                        available_moves: moves,
-                        training_flag: True
-                    },
-                )
+                    new_moves = env.available_moves()
+                    rotated_new_board, _, rotated_new_moves = \
+                        rotate_board_and_action_left(new_observation, action[0], new_moves)
+
+                    Q1 = sess.run(
+                        [Qout_],
+                        feed_dict={
+                            observation_input: np.array([rotated_new_board]),
+                            reward_: [reward],
+                            available_moves: rotated_new_moves,
+                            training_flag: False
+                        },
+                    )[0]
+
+                    # compute the target Q-values
+                    maxQ1 = np.max(Q1)
+                    targetQ = Qvals
+                    if not done:
+                        targetQ[0][0, action[0]] = reward + gamma * maxQ1
+                    else:
+                        targetQ[0][0, action[0]] = reward
+
+                    # backpropagate error between predicted and new Q values for state
+                    sess.run(
+                        [train_step],
+                        feed_dict={
+                            observation_input: np.array([rotated_old_board]),
+                            nextQ: targetQ[0],
+                            reward_: [reward],
+                            action_: rotated_action,
+                            available_moves: rotated_old_moves,
+                            training_flag: True
+                        },
+                    )
 
                 # log observations
                 observation = new_observation
@@ -282,8 +299,13 @@ rewards = np.array(rewards)
 print("\tAverage fitness: {}".format(np.mean(scores)))
 print("\tStandard Deviation of Fitness: {}".format(np.std(scores)))
 
-plt.plot(scores)
-plt.plot(ema(scores, 0.1))
+fig, ax = plt.subplots()
+ax.plot(scores)
+ax.plot(ema(scores, 0.1))
+ax.grid()
+ax.set_xlabel('Game Number')
+ax.set_ylabel('Final Score')
 # plt.axis([0,num_episodes,0,100000])
-plt.title("Scores Over Time")
+ax.set_title("Scores Over Time")
+plt.set_size_inches(6, 4)
 plt.show()
