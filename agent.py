@@ -1,18 +1,14 @@
 import numpy as np
-from numpy.random import rand, randn, randint
-import matplotlib.pyplot as plt
-from scipy.special import softmax
 import tensorflow as tf
+from icecream import ic
+from matplotlib import pyplot as plt
+from numpy.random import rand, randn, randint
+from scipy.special import softmax
 from tensorflow.keras import optimizers
 
-# tf.compat.v1.disable_eager_execution()
-
-from icecream import ic
-
-from model import ReinforcementAgent
-from game import Game
 from funcs import ema
-
+from game import Game
+from model import ReinforcementAgent
 
 # define environment, in this case a game of 2048
 BOARD_SIZE = 4
