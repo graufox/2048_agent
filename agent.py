@@ -291,7 +291,7 @@ try:
 except KeyboardInterrupt:
     print("aborted by user")
 except ValueError as e:
-    print(f"value error: {e[:100]}")
+    print(f"value error: {e}")
 
 # display statistics
 observations = np.stack(observations)
@@ -309,4 +309,5 @@ ax.set_ylabel("Final Score")
 # plt.axis([0,num_episodes,0,100000])
 ax.set_title("Scores Over Time")
 fig.set_size_inches(6, 4)
+plt.savefig('score_over_time.png')
 plt.show()
