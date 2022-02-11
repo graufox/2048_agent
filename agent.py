@@ -128,7 +128,6 @@ print("Training DQN, please wait...")
 # set up lists for keeping track of progress
 scores = []
 rewards = []
-# observations = []
 
 try:
     with tf.compat.v1.Session() as sess:
@@ -139,8 +138,6 @@ try:
 
             # start with a fresh environment
             observation = env.reset()
-            # if all([(observation != x).any() for x in observations]):
-                # observations += [observation]
 
             # run the simulation
             episode_reward = 0
@@ -247,8 +244,7 @@ try:
                     )
 
                 # log observations
-                observation = new_observation
-                # observations += [new_observation]
+                observation = new_observation.copy()
 
                 # end game if finished
                 if done:
@@ -266,15 +262,12 @@ try:
             scores += [env.score]
             rewards += [episode_reward]
 
-            # save_path = saver.save(sess, "/tmp/model.ckpt")
-
 except KeyboardInterrupt:
     print("aborted by user")
 except ValueError as e:
     print(f"value error: {e}")
 
 # display statistics
-# observations = np.stack(observations)
 scores = np.array(scores)
 rewards = np.array(rewards)
 print("\tAverage fitness: {}".format(np.mean(scores)))
@@ -286,7 +279,6 @@ ax.plot(ema(scores, 0.1))
 ax.grid()
 ax.set_xlabel("Game Number")
 ax.set_ylabel("Final Score")
-# plt.axis([0,num_episodes,0,100000])
 ax.set_title("Scores Over Time")
 fig.set_size_inches(6, 4)
 plt.savefig('score_over_time.png')
