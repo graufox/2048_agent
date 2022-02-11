@@ -42,8 +42,9 @@ class Game:
     python class for the game 2048
     """
 
-    def __init__(self, board_size=4):
+    def __init__(self, board_size=4, board_depth=16):
         self.board_size = board_size
+        self.board_depth = board_depth
         self.board = np.zeros((board_size, board_size), dtype=np.int32)
         self.score = 0
         self.num_moves = 0
@@ -176,7 +177,7 @@ class Game:
         if not self.is_done():
             self.last_board = self.board
 
-        return board_2_array(self.board, self.board_size), reward, self.is_done(), {}
+        return board_2_array(self.board, self.board_size, self.board_depth), reward, self.is_done(), {}
 
 
 if __name__ == "__main__":

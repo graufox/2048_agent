@@ -15,7 +15,8 @@ from funcs import ema
 
 # define environment, in this case a game of 2048
 BOARD_SIZE = 4
-env = Game(board_size=BOARD_SIZE)
+BOARD_DEPTH = 16
+env = Game(board_size=BOARD_SIZE, board_depth=BOARD_DEPTH)
 
 # make model for Q
 # set hyperparameters
@@ -153,7 +154,7 @@ try:
                 Qvals = sess.run(
                     [Qout_],
                     feed_dict={
-                        observation_input: np.array([observation]),
+                        observation_input: np.array([observation]) / np.sqrt(BOARD_DEPTH),
                         available_moves: moves,
                         training_flag: False,
                     },
@@ -216,7 +217,7 @@ try:
                     Q1 = sess.run(
                         [Qout_],
                         feed_dict={
-                            observation_input: np.array([rotated_new_board]),
+                            observation_input: np.array([rotated_new_board]) / np.sqrt(BOARD_DEPTH),
                             # reward_: [reward],
                             available_moves: rotated_new_moves,
                             training_flag: False,
@@ -235,7 +236,7 @@ try:
                     sess.run(
                         [train_step],
                         feed_dict={
-                            observation_input: np.array([rotated_old_board]),
+                            observation_input: np.array([rotated_old_board]) / np.sqrt(BOARD_DEPTH),
                             nextQ: targetQ[0],
                             reward_: [reward],
                             action_: rotated_action,
