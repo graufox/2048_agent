@@ -28,72 +28,6 @@ learning_rate = 1e-4
 gamma = 0.955  # the discount rate of future reward
 
 
-# MODEL ARCHITECTURE
-
-# # Input definition and preprocessing
-# training_flag = tf.compat.v1.placeholder(bool, shape=(), name="training_flag")
-# available_moves = tf.compat.v1.placeholder(
-#     tf.float32, shape=(1, 4), name="available_moves"
-# )
-# observation_input = tf.compat.v1.placeholder(
-#     tf.float32, shape=(1, BOARD_SIZE, BOARD_SIZE, 16), name="observation_input"
-# )
-# input_bn = tf.keras.layers.BatchNormalization()(
-#     observation_input, training=training_flag
-# )
-#
-# preproc = Conv2DStack(
-#     filters=64,
-#     kernel_size=(1, 1),
-#     activation=tf.nn.leaky_relu,
-#     padding="same",
-#     dropout_rate=0.0,
-# )(input_bn, training=training_flag)
-#
-# # 2D Convolutions on each separate tile's onehot encoded grid
-# conv_2d_a = Conv2DStack(
-#     filters=64,
-#     kernel_size=(3, 3),
-#     activation=tf.nn.leaky_relu,
-#     padding="same",
-#     dropout_rate=0.2,
-# )(preproc, training=training_flag)
-# conv_2d_a = (
-#     Conv2DStack(
-#         filters=64,
-#         kernel_size=(3, 3),
-#         activation=tf.nn.leaky_relu,
-#         padding="same",
-#         dropout_rate=0.2,
-#     )(conv_2d_a, training=training_flag)
-#     + conv_2d_a
-# )
-# conv_2d_a = (
-#     Conv2DStack(
-#         filters=64,
-#         kernel_size=(3, 3),
-#         activation=tf.nn.leaky_relu,
-#         padding="same",
-#         dropout_rate=0.2,
-#     )(conv_2d_a, training=training_flag)
-#     + conv_2d_a
-# )
-# conv_flatten = tf.keras.layers.Flatten()(conv_2d_a)
-#
-#
-# # Dense block
-# dense_1 = tf.keras.layers.Dense(units=1024, activation=tf.nn.leaky_relu)(conv_flatten)
-# dense_1 = tf.keras.layers.BatchNormalization()(dense_1, training=training_flag)
-# dense_1 = tf.keras.layers.Dropout(0.2)(dense_1, training=training_flag)
-#
-# # Output Q-values
-# log_Qout = tf.keras.layers.Dense(
-#     units=4,
-#     activation=None,
-# )(dense_1)
-# Qout = tf.math.exp(log_Qout)
-# Qout_ = Qout * available_moves
-
 agent = ReinforcementAgent()
 agent.compile(
     loss='MAE',
@@ -113,10 +47,6 @@ agent.compile(
 # # loss definition
 # loss = tf.reduce_sum(-log_pickedQ * reward_)
 # loss += tf.reduce_sum(tf.abs(Qout - nextQ))
-#
-# # optimizer
-# optim = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate, name="optim")
-# train_step = optim.minimize(loss, name="train_step")
 
 
 # TRAIN
