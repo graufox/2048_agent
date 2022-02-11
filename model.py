@@ -2,6 +2,27 @@ import tensorflow as tf
 from tensorflow.keras import layers
 
 
+class DenseStack(layers.Layer):
+    def __init__(
+        self,
+        units=1024,
+        activation=tf.nn.leaky_relu,
+        dropout_rate=0.2,
+    ):
+        super().__init__()
+        self.dense_layer = layers.Dense(
+            units=units, activation=activation
+        )
+        self.bn_layer = layers.BatchNormalization()
+        self.dropout_layer = layers.SpatialDropout3D(dropout_rate)
+
+    def call(self, inputs, training=False):
+        x = self.dense_layer(inputs)
+        x_bn = self.bn_layer(x, training=training)
+        x_do = self.dropout_layer(x_bn, training=training)
+        return x_do
+
+
 class Conv2DStack(layers.Layer):
     def __init__(
         self,
@@ -46,3 +67,25 @@ class Conv3DStack(layers.Layer):
         x_bn = self.bn_layer(x, training=training)
         x_do = self.dropout_layer(x_bn, training=training)
         return x_do
+
+
+class ReinforcementAgent(tf.keras.models.Model):
+    def __init__(
+        self
+    ):
+        super().__init__()
+        self.preproc = Conv2DStack(kernel_size=(1, 1), dropout_rate=0.)
+        self.conv = Conv2DStack(kernel_size=(3, 3), dropout_rate=0.5)
+        self.flatten = layers.Flatten()
+        self.dense = DenseStack(units=1024, dropout_rate=0.5)
+        self.compute_unmasked_logQ = DenseStack(units=4, dropout_rate=0.)
+
+    def call(self, inputs, training=False):
+        observation, available_moves = inputs
+        x = self.preproc(observation)
+        x = self.conv(x, training=training)
+        x = self.flatten(x)
+        x = self.dense(x, training=training)
+        unmasked_logQ = self.compute_unmasked_logQ(x)
+        Q = tf.math.exp(unmasked_logQ) * available_moves
+        return Q

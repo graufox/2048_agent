@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.random import rand, randn, randint
 import matplotlib.pyplot as plt
+from scipy.special import softmax
 import tensorflow as tf
 
 tf.compat.v1.disable_eager_execution()
@@ -14,7 +15,8 @@ from funcs import ema
 
 # define environment, in this case a game of 2048
 BOARD_SIZE = 4
-env = Game(board_size=BOARD_SIZE)
+BOARD_DEPTH = 16
+env = Game(board_size=BOARD_SIZE, board_depth=BOARD_DEPTH)
 
 # make model for Q
 # set hyperparameters
@@ -28,36 +30,23 @@ gamma = 0.955  # the discount rate of future reward
 # MODEL ARCHITECTURE
 
 # Input definition and preprocessing
-training_flag = tf.compat.v1.placeholder(
-    bool, shape=(), name="training_flag"
+training_flag = tf.compat.v1.placeholder(bool, shape=(), name="training_flag")
+available_moves = tf.compat.v1.placeholder(
+    tf.float32, shape=(1, 4), name="available_moves"
 )
 observation_input = tf.compat.v1.placeholder(
     tf.float32, shape=(1, BOARD_SIZE, BOARD_SIZE, 16), name="observation_input"
 )
-input_bn = tf.keras.layers.BatchNormalization()(observation_input, training=training_flag)
-# preproc = tf.keras.layers.Reshape((BOARD_SIZE, BOARD_SIZE, 16, 1))(input_bn)
-# preproc = Conv3DStack(
-#     filters=64,
-#     kernel_size=(1, 1, 5),
-#     activation=tf.nn.leaky_relu,
-#     padding="valid",
-#     dropout_rate=0.
-# )(preproc)
-# preproc = tf.keras.layers.Reshape((BOARD_SIZE, BOARD_SIZE, -1))(preproc)
-# preproc = Conv2DStack(
-#     filters=64,
-#     kernel_size=(1, 1),
-#     activation=tf.nn.leaky_relu,
-#     padding="same",
-#     dropout_rate=0.
-# )(preproc)
+input_bn = tf.keras.layers.BatchNormalization()(
+    observation_input, training=training_flag
+)
 
 preproc = Conv2DStack(
     filters=64,
     kernel_size=(1, 1),
     activation=tf.nn.leaky_relu,
     padding="same",
-    dropout_rate=0.
+    dropout_rate=0.0,
 )(input_bn, training=training_flag)
 
 # 2D Convolutions on each separate tile's onehot encoded grid
@@ -66,33 +55,32 @@ conv_2d_a = Conv2DStack(
     kernel_size=(3, 3),
     activation=tf.nn.leaky_relu,
     padding="same",
-    dropout_rate=0.2
+    dropout_rate=0.2,
 )(preproc, training=training_flag)
-conv_2d_a = Conv2DStack(
-    filters=64,
-    kernel_size=(3, 3),
-    activation=tf.nn.leaky_relu,
-    padding="same",
-    dropout_rate=0.2
-)(conv_2d_a, training=training_flag) + conv_2d_a
-conv_2d_a = Conv2DStack(
-    filters=64,
-    kernel_size=(3, 3),
-    activation=tf.nn.leaky_relu,
-    padding="same",
-    dropout_rate=0.2
-)(conv_2d_a, training=training_flag) + conv_2d_a
-# conv_flatten = tf.keras.layers.GlobalMaxPool2D()(conv_2d_a)
-# conv_flatten = tf.keras.layers.BatchNormalization()(conv_flatten)
-# conv_flatten = tf.keras.layers.Dropout(0.2)(conv_flatten)
+conv_2d_a = (
+    Conv2DStack(
+        filters=64,
+        kernel_size=(3, 3),
+        activation=tf.nn.leaky_relu,
+        padding="same",
+        dropout_rate=0.2,
+    )(conv_2d_a, training=training_flag)
+    + conv_2d_a
+)
+conv_2d_a = (
+    Conv2DStack(
+        filters=64,
+        kernel_size=(3, 3),
+        activation=tf.nn.leaky_relu,
+        padding="same",
+        dropout_rate=0.2,
+    )(conv_2d_a, training=training_flag)
+    + conv_2d_a
+)
 conv_flatten = tf.keras.layers.Flatten()(conv_2d_a)
 
 
-# # Dense block
-# dense_1 = tf.keras.layers.Dense(units=1024, activation=tf.nn.leaky_relu)(conv_flatten)
-# dense_1 = tf.keras.layers.BatchNormalization()(dense_1)
-# dense_1 = tf.keras.layers.Dropout(0.2)(dense_1)
-
+# Dense block
 dense_1 = tf.keras.layers.Dense(units=1024, activation=tf.nn.leaky_relu)(conv_flatten)
 dense_1 = tf.keras.layers.BatchNormalization()(dense_1, training=training_flag)
 dense_1 = tf.keras.layers.Dropout(0.2)(dense_1, training=training_flag)
@@ -103,10 +91,6 @@ log_Qout = tf.keras.layers.Dense(
     activation=None,
 )(dense_1)
 Qout = tf.math.exp(log_Qout)
-# Qout = tf.keras.backend.clip(Qout, 0., 100.)
-available_moves = tf.compat.v1.placeholder(
-    tf.float32, shape=(1, 4), name="available_moves"
-)
 Qout_ = Qout * available_moves
 predict = tf.argmax(input=Qout_, axis=1, name="prediction")
 maxQ = tf.reduce_max(input_tensor=Qout_, axis=1, name="maxQ")
@@ -118,71 +102,43 @@ maxQ = tf.reduce_max(input_tensor=Qout_, axis=1, name="maxQ")
 # placeholders we'll need for calculation
 nextQ = tf.compat.v1.placeholder(tf.float32, shape=(1, 4), name="nextQ")
 reward_ = tf.compat.v1.placeholder(tf.float32, shape=(1,), name="reward_")
-fam_ = tf.compat.v1.placeholder(tf.float32, shape=(1,), name="fam_")
 action_ = tf.compat.v1.placeholder(tf.int32, shape=(1,), name="action_")
 log_pickedQ = log_Qout[:, action_[0]]
 
 # loss definition
 loss = tf.reduce_sum(-log_pickedQ * reward_)
 loss += tf.reduce_sum(tf.abs(Qout - nextQ))
-# loss += 1e-2 * tf.reduce_sum(Qout**2)  # regularize output
 
 # optimizer
 optim = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate, name="optim")
 train_step = optim.minimize(loss, name="train_step")
 
 
-# set up lists for keeping track of progress
-scores = []
-rewards = []
-observations = []
-
-
 # TRAIN
-
-saver = tf.compat.v1.train.Saver()
-
-init = tf.compat.v1.global_variables_initializer()
-NAN = False
-
-print("Training DQN, please wait...")
 
 
 def rotate_board_and_action_left(board, action, available_moves):
     rotated_board = np.rot90(board)
-    rotated_action = action - 1 % 4
+    rotated_action = (action - 1) % 4
     rotated_available_moves = np.roll(available_moves, -1)
     return rotated_board, rotated_action, rotated_available_moves
 
 
+init = tf.compat.v1.global_variables_initializer()
+print("Training DQN, please wait...")
+# set up lists for keeping track of progress
+scores = []
+rewards = []
+
 try:
     with tf.compat.v1.Session() as sess:
-
-        # initialize tensorflow variables for session
         sess.run(init)
-
-        # # attempt to load old weights
-        # try:
-        #     saver.restore(sess, "/tmp/model.ckpt")
-        #     print("Weights loaded...")
-        # except:
-        #     print("No model weights found, proceeding from scratch...")
 
         # iterate through a number of episodes
         for i_episode in range(num_episodes):
 
-            if i_episode % 10 == 0 and i_episode > 0:
-                print(
-                    "\t\taverage from {} to {}: {}".format(
-                        i_episode - 10, i_episode - 1, np.mean(scores[-10:])
-                    )
-                )
-            print("\tepisode {}  ---  ".format(i_episode), end="")
-
             # start with a fresh environment
             observation = env.reset()
-            if all([(observation != x).any() for x in observations]):
-                observations += [observation]
 
             # run the simulation
             episode_reward = 0
@@ -198,9 +154,9 @@ try:
                 Qvals = sess.run(
                     [Qout_],
                     feed_dict={
-                        observation_input: np.array([observation]),
+                        observation_input: np.array([observation]) / np.sqrt(BOARD_DEPTH),
                         available_moves: moves,
-                        training_flag: False
+                        training_flag: False,
                     },
                 )
 
@@ -208,17 +164,10 @@ try:
                 if np.isnan(Qvals).any():
                     print("NaN encountered; breaking")
                     ic(Qvals)
-                    NAN = True
-                    break
+                    raise ValueError
 
                 # sample an action according to Q-values
-                temp = (Qvals[0] - Qvals[0].min()) * moves[0]
-                if temp.max() > 100:
-                    p = temp[0] / temp[0].sum()
-                else:
-                    p = np.exp(temp)[0] * moves[0]
-                if p.sum() < 1e-5:
-                    p = p > 0
+                p = softmax(Qvals[0]) * moves[0]
                 p = p / p.sum()
                 try:
                     action = [np.random.choice([0, 1, 2, 3], p=p)]
@@ -227,26 +176,50 @@ try:
 
                 # make a step in the environment
                 new_observation, reward, done, info = env.step(action[0])
-                episode_reward += np.log(reward + 1.)
-                # reward = np.log(reward + 1.) / np.log(2.)
+                episode_reward += reward
+
+                new_moves = env.available_moves()
 
                 # get Q value for new state
+                rotated_old_board = observation.copy()
+                rotated_action = action.copy()
+                rotated_old_moves = moves.copy()
+                rotated_new_board = new_observation.copy()
+                rotated_new_moves = new_moves.copy()
+
                 for _ in range(4):
-                    rotated_old_board, rotated_action, rotated_old_moves = \
-                        rotate_board_and_action_left(observation, action[0], moves)
+
+                    # rotate previous board
+                    (
+                        rotated_old_board,
+                        rotated_action,
+                        rotated_old_moves,
+                    ) = rotate_board_and_action_left(
+                        rotated_old_board,
+                        rotated_action[0],
+                        rotated_old_moves
+                    )
                     rotated_action = [rotated_action]
 
-                    new_moves = env.available_moves()
-                    rotated_new_board, _, rotated_new_moves = \
-                        rotate_board_and_action_left(new_observation, action[0], new_moves)
+                    # rotate new board
+                    (
+                        rotated_new_board,
+                        _,
+                        rotated_new_moves,
+                    ) = rotate_board_and_action_left(
+                        rotated_new_board,
+                        rotated_action[0],
+                        rotated_new_moves
+                    )
 
+                    # get Q-values for actions in new state
                     Q1 = sess.run(
                         [Qout_],
                         feed_dict={
-                            observation_input: np.array([rotated_new_board]),
-                            reward_: [reward],
+                            observation_input: np.array([rotated_new_board]) / np.sqrt(BOARD_DEPTH),
+                            # reward_: [reward],
                             available_moves: rotated_new_moves,
-                            training_flag: False
+                            training_flag: False,
                         },
                     )[0]
 
@@ -256,44 +229,46 @@ try:
                     if not done:
                         targetQ[0][0, action[0]] = reward + gamma * maxQ1
                     else:
-                        targetQ[0][0, action[0]] = reward
+                        targetQ[0][0, action[0]] -= 10
 
                     # backpropagate error between predicted and new Q values for state
                     sess.run(
                         [train_step],
                         feed_dict={
-                            observation_input: np.array([rotated_old_board]),
+                            observation_input: np.array([rotated_old_board]) / np.sqrt(BOARD_DEPTH),
                             nextQ: targetQ[0],
                             reward_: [reward],
                             action_: rotated_action,
                             available_moves: rotated_old_moves,
-                            training_flag: True
+                            training_flag: True,
                         },
                     )
 
                 # log observations
-                observation = new_observation
-                observations += [new_observation]
+                observation = new_observation.copy()
 
                 # end game if finished
                 if done:
                     if i_episode % 100 == 0:
                         print(env.board)
                         print("-" * 10)
-                    print("(score,max tile) = ({},{})".format(env.score, env.board.max()))
+                    print(
+                        "(score,max tile) = ({},{})".format(
+                            env.score, env.board.max()
+                        )
+                    )
                     break
 
             # log scores and rewards for game
             scores += [env.score]
             rewards += [episode_reward]
 
-            save_path = saver.save(sess, "/tmp/model.ckpt")
-
 except KeyboardInterrupt:
-    print('aborted by user')
+    print("aborted by user")
+except ValueError as e:
+    print(f"value error: {e}")
 
 # display statistics
-observations = np.stack(observations)
 scores = np.array(scores)
 rewards = np.array(rewards)
 print("\tAverage fitness: {}".format(np.mean(scores)))
@@ -303,9 +278,9 @@ fig, ax = plt.subplots()
 ax.plot(scores)
 ax.plot(ema(scores, 0.1))
 ax.grid()
-ax.set_xlabel('Game Number')
-ax.set_ylabel('Final Score')
-# plt.axis([0,num_episodes,0,100000])
+ax.set_xlabel("Game Number")
+ax.set_ylabel("Final Score")
 ax.set_title("Scores Over Time")
-plt.set_size_inches(6, 4)
+fig.set_size_inches(6, 4)
+plt.savefig('score_over_time.png')
 plt.show()
