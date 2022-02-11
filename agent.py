@@ -274,7 +274,7 @@ except ValueError as e:
     print(f"value error: {e}")
 
 # display statistics
-observations = np.stack(observations)
+# observations = np.stack(observations)
 scores = np.array(scores)
 rewards = np.array(rewards)
 print("\tAverage fitness: {}".format(np.mean(scores)))
