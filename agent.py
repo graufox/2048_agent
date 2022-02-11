@@ -107,24 +107,13 @@ log_pickedQ = log_Qout[:, action_[0]]
 # loss definition
 loss = tf.reduce_sum(-log_pickedQ * reward_)
 loss += tf.reduce_sum(tf.abs(Qout - nextQ))
-# loss += 1e-2 * tf.reduce_sum(Qout**2)  # regularize output
 
 # optimizer
 optim = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate, name="optim")
 train_step = optim.minimize(loss, name="train_step")
 
 
-# set up lists for keeping track of progress
-scores = []
-rewards = []
-observations = []
-
-
 # TRAIN
-
-init = tf.compat.v1.global_variables_initializer()
-
-print("Training DQN, please wait...")
 
 
 def rotate_board_and_action_left(board, action, available_moves):
@@ -134,10 +123,15 @@ def rotate_board_and_action_left(board, action, available_moves):
     return rotated_board, rotated_action, rotated_available_moves
 
 
+init = tf.compat.v1.global_variables_initializer()
+print("Training DQN, please wait...")
+# set up lists for keeping track of progress
+scores = []
+rewards = []
+observations = []
+
 try:
     with tf.compat.v1.Session() as sess:
-
-        # initialize tensorflow variables for session
         sess.run(init)
 
         # iterate through a number of episodes
