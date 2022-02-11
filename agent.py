@@ -30,6 +30,9 @@ gamma = 0.955  # the discount rate of future reward
 
 # Input definition and preprocessing
 training_flag = tf.compat.v1.placeholder(bool, shape=(), name="training_flag")
+available_moves = tf.compat.v1.placeholder(
+    tf.float32, shape=(1, 4), name="available_moves"
+)
 observation_input = tf.compat.v1.placeholder(
     tf.float32, shape=(1, BOARD_SIZE, BOARD_SIZE, 16), name="observation_input"
 )
@@ -87,9 +90,6 @@ log_Qout = tf.keras.layers.Dense(
     activation=None,
 )(dense_1)
 Qout = tf.math.exp(log_Qout)
-available_moves = tf.compat.v1.placeholder(
-    tf.float32, shape=(1, 4), name="available_moves"
-)
 Qout_ = Qout * available_moves
 predict = tf.argmax(input=Qout_, axis=1, name="prediction")
 maxQ = tf.reduce_max(input_tensor=Qout_, axis=1, name="maxQ")
