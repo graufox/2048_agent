@@ -102,14 +102,19 @@ class ReinforcementAgent(tf.keras.models.Model):
         x = self.dense(x, training=training)
         unmasked_logQ = self.compute_unmasked_logQ(x)
         Q = tf.math.exp(unmasked_logQ) * available_moves
-        self.add_loss(tf.reduce_max(Q)**2)
+        self.add_loss(1e-1 * tf.reduce_max(Q)**2)
+        # TODO: loss definition
+        # # loss = tf.reduce_sum(-log_pickedQ * reward_)
+        # # loss += tf.reduce_sum(tf.abs(Qout - nextQ))
         return Q
 
     @tf.function
-    def train_step(self, x, targetQ):
+    def train_step(self, x, picked_action, reward, targetQ):
         with tf.GradientTape() as tape:
             Q = self(x, training=True)
             loss_value = self.compiled_loss(targetQ, Q)
+            pickedQ = tf.gather(targetQ, picked_action, batch_dims=1)
+            loss_value -= tf.math.log(pickedQ + 1e-12) * reward
         grads = tape.gradient(loss_value, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         return loss_value
