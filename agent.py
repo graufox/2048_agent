@@ -177,7 +177,6 @@ try:
                 # make a step in the environment
                 new_observation, reward, done, info = env.step(action[0])
                 episode_reward += reward
-                reward = np.log(reward + 1.0) / np.log(2.0)
 
                 new_moves = env.available_moves()
 
