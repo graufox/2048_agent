@@ -23,12 +23,8 @@ episode_length = 2**20  # max number of moves per game
 learning_rate = 1e-4
 gamma = 0.955  # the discount rate of future reward
 
-
 agent = ReinforcementAgent()
-agent.compile(
-    loss='MAE',
-    optimizer=optimizers.Adamax(learning_rate)
-)
+agent.compile(loss="MAE", optimizer=optimizers.Adamax(learning_rate))
 
 print("Training DQN, please wait...")
 # set up lists for keeping track of progress
@@ -75,7 +71,7 @@ try:
             # make a step in the environment
             new_observation, reward, done, info = env.step(action[0])
             episode_reward += reward
-            reward = np.log(reward + 2**-1) / np.log(2.)
+            reward = np.log(reward + 2**-1) / np.log(2.0)
 
             new_moves = env.available_moves()
 
@@ -91,7 +87,7 @@ try:
                 if not done:
                     targetQ[i, action[i]] = reward + gamma * maxQ1[i]
                 else:
-                    targetQ[i, action[i]] = 0.
+                    targetQ[i, action[i]] = 0.0
 
             # backpropagate error between predicted and new Q values for state
             agent.train_step(
@@ -106,11 +102,7 @@ try:
                 if i_episode % 100 == 0:
                     print(env.board)
                     print("-" * 10)
-                print(
-                    "(score,max tile) = ({},{})".format(
-                        env.score, env.board.max()
-                    )
-                )
+                print("(score,max tile) = ({},{})".format(env.score, env.board.max()))
                 break
 
         # log scores and rewards for game
@@ -136,5 +128,5 @@ ax.set_xlabel("Game Number")
 ax.set_ylabel("Final Score")
 ax.set_title("Scores Over Time")
 fig.set_size_inches(6, 4)
-plt.savefig('score_over_time.png')
+plt.savefig("score_over_time.png")
 plt.show()
