@@ -30,32 +30,6 @@ agent.compile(
     optimizer=optimizers.Adamax(learning_rate)
 )
 
-
-# OPTIMIZATION SETUP
-
-# # for updating the network
-# # placeholders we'll need for calculation
-# nextQ = tf.compat.v1.placeholder(tf.float32, shape=(1, 4), name="nextQ")
-# reward_ = tf.compat.v1.placeholder(tf.float32, shape=(1,), name="reward_")
-# action_ = tf.compat.v1.placeholder(tf.int32, shape=(1,), name="action_")
-# log_pickedQ = log_Qout[:, action_[0]]
-#
-# # loss definition
-# loss = tf.reduce_sum(-log_pickedQ * reward_)
-# loss += tf.reduce_sum(tf.abs(Qout - nextQ))
-
-
-# TRAIN
-
-
-def rotate_board_and_action_left(board, action, available_moves):
-    rotated_board = np.rot90(board)
-    rotated_action = (action - 1) % 4
-    rotated_available_moves = np.roll(available_moves, -1)
-    return rotated_board, rotated_action, rotated_available_moves
-
-
-init = tf.compat.v1.global_variables_initializer()
 print("Training DQN, please wait...")
 # set up lists for keeping track of progress
 scores = []
@@ -79,14 +53,14 @@ try:
                 print("-" * 10)
 
             # choose best action, with noise
-            moves = np.array(env.available_moves())
-            Qvals = agent(
-                (np.array([observation]) / np.sqrt(BOARD_DEPTH), moves)
-            )
+            observation_input = np.array([observation], dtype=float)
+            moves = env.available_moves()
+            moves_input = np.array(moves, dtype=float)
+            Qvals = agent((observation_input, moves_input))
+            ic(Qvals)
 
             # check for any NaN values encountered in output
             if np.isnan(Qvals).any():
-                print("NaN encountered; breaking")
                 ic(Qvals)
                 raise ValueError
 
@@ -96,79 +70,32 @@ try:
             try:
                 action = [np.random.choice([0, 1, 2, 3], p=p_ex) for p_ex in p]
             except ValueError:
-                action = [np.argmax(Qvals, axis=1)]
+                action = np.argmax(Qvals, axis=1)
 
             # make a step in the environment
             new_observation, reward, done, info = env.step(action[0])
             episode_reward += reward
+            reward = np.log(reward + 2**-1) / np.log(2.)
 
             new_moves = env.available_moves()
 
-            # get Q value for new state
-            rotated_old_board = observation.copy()
-            rotated_action = action.copy()
-            rotated_old_moves = moves.copy()
-            rotated_new_board = new_observation.copy()
-            rotated_new_moves = new_moves.copy()
-
-            rotated_boards = []
-            rotated_actions = []
-            rotated_moves = []
-            targetQ = []
-            for _ in range(4):
-
-                # rotate previous board
-                (
-                    rotated_old_board,
-                    rotated_action,
-                    rotated_old_moves,
-                ) = rotate_board_and_action_left(
-                    rotated_old_board,
-                    rotated_action[0],
-                    rotated_old_moves
-                )
-                rotated_action = [rotated_action]
-
-                # rotate new board
-                (
-                    rotated_new_board,
-                    _,
-                    rotated_new_moves,
-                ) = rotate_board_and_action_left(
-                    rotated_new_board,
-                    rotated_action[0],
-                    rotated_new_moves
-                )
-
-                rotated_boards.append(
-                    np.array(rotated_old_board) / np.sqrt(BOARD_DEPTH)
-                )
-                rotated_moves.append(
-                    rotated_old_moves
-                )
-                targetQ.append(Qvals.numpy())
-                rotated_actions.append(rotated_action)
-
-            rotated_boards = np.stack(rotated_boards, axis=0)
-            rotated_moves = np.vstack(rotated_moves)
-            rotated_actions = np.stack(rotated_actions, axis=0)
-            targetQ = np.vstack(targetQ)
             # get Q-values for actions in new state
-            Q1 = agent(
-                (rotated_boards, rotated_moves)
-            )
+            new_observation_input = np.array([new_observation], dtype=float)
+            new_moves_input = np.array(new_moves, dtype=float)
+            Q1 = agent((new_observation_input, new_moves_input))
 
             # compute the target Q-values
             maxQ1 = np.max(Q1, axis=1)
-            for i in range(4):
+            targetQ = Q1.numpy()
+            for i in range(len(Q1)):
                 if not done:
-                    targetQ[i, rotated_actions[i]] = reward + gamma * maxQ1[i]
+                    targetQ[i, action[i]] = reward + gamma * maxQ1[i]
                 else:
-                    targetQ[i, rotated_actions[i]] -= 10
+                    targetQ[i, action[i]] = 0.
 
             # backpropagate error between predicted and new Q values for state
             agent.train_step(
-                (rotated_boards, rotated_moves), rotated_actions, [reward] * 4, targetQ
+                (observation_input, moves_input), action, [reward], targetQ
             )
 
             # log observations

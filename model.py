@@ -1,4 +1,5 @@
 import tensorflow as tf
+from icecream import ic
 from tensorflow.keras import layers
 
 
@@ -69,6 +70,43 @@ class Conv3DStack(layers.Layer):
         return x_do
 
 
+class ConvModel(tf.keras.models.Model):
+    def __init__(
+        self,
+        conv_filters=128,
+        conv_dropout=0.2,
+        dense_units=1024,
+        dense_dropout=0.5,
+        kernel_size=(3, 3),
+    ):
+        super().__init__()
+
+        self.preproc = Conv2DStack(
+            filters=conv_filters,
+            kernel_size=(1, 1),
+            dropout_rate=0.,
+        )
+        self.conv = Conv2DStack(
+            filters=conv_filters,
+            kernel_size=kernel_size,
+            dropout_rate=conv_dropout,
+        )
+        self.flatten = layers.Flatten()
+        self.dense = DenseStack(
+            units=dense_units,
+            dropout_rate=dense_dropout,
+        )
+        self.output_layer = DenseStack(units=4, dropout_rate=0.)
+
+    def call(self, inputs, training=False):
+        x = self.preproc(inputs)
+        x = self.conv(x, training=training)
+        x = self.flatten(x)
+        x = self.dense(x, training=training)
+        output = self.output_layer(x)
+        return output
+
+
 class ReinforcementAgent(tf.keras.models.Model):
     def __init__(
         self,
@@ -80,38 +118,46 @@ class ReinforcementAgent(tf.keras.models.Model):
     ):
         super().__init__()
 
-        self.preproc = Conv2DStack(
-            filters=conv_filters,
-            kernel_size=(1, 1),
-            dropout_rate=0.
+        self.base_model = ConvModel(
+            conv_filters=conv_filters,
+            conv_dropout=conv_dropout,
+            dense_units=dense_units,
+            dense_dropout=dense_dropout,
+            kernel_size=kernel_size
         )
-        self.conv = Conv2DStack(
-            filters=conv_filters,
-            kernel_size=kernel_size,
-            dropout_rate=conv_dropout
-        )
-        self.flatten = layers.Flatten()
-        self.dense = DenseStack(units=dense_units, dropout_rate=dense_dropout)
-        self.compute_unmasked_logQ = DenseStack(units=4, dropout_rate=0.)
 
     def call(self, inputs, training=False):
+
         observation, available_moves = inputs
-        x = self.preproc(observation)
-        x = self.conv(x, training=training)
-        x = self.flatten(x)
-        x = self.dense(x, training=training)
-        unmasked_logQ = self.compute_unmasked_logQ(x)
-        Q = tf.math.exp(unmasked_logQ) * available_moves
-        # self.add_loss(1e-1 * tf.reduce_max(Q)**2)
+
+        obs_0 = tf.image.rot90(observation, k=0)
+        obs_90 = tf.image.rot90(observation, k=1)
+        obs_180 = tf.image.rot90(observation, k=2)
+        obs_270 = tf.image.rot90(observation, k=3)
+
+        logQ_0 = self.base_model(obs_0, training=training)
+        logQ_90 = self.base_model(obs_90, training=training)
+        logQ_180 = self.base_model(obs_180, training=training)
+        logQ_270 = self.base_model(obs_270, training=training)
+
+        logQ = tf.reduce_mean(
+            [
+                tf.gather(logQ_0, [0, 1, 2, 3], axis=1),
+                tf.gather(logQ_90, [3, 0, 1, 2], axis=1),
+                tf.gather(logQ_180, [2, 3, 0, 1], axis=1),
+                tf.gather(logQ_270, [1, 2, 3, 0], axis=1),
+            ]
+        )
+        Q = tf.math.exp(logQ) * available_moves
         return Q
 
     @tf.function
     def train_step(self, x, picked_action, reward, targetQ):
         with tf.GradientTape() as tape:
             Q = self(x, training=True)
-            loss_value = self.compiled_loss(targetQ, Q)
-            pickedQ = tf.gather(targetQ, picked_action, batch_dims=1)
-            loss_value -= tf.math.log(pickedQ + 1e-12) * reward
+            pickedQ = tf.gather(targetQ, picked_action, axis=1)
+            loss_value = tf.reduce_mean(tf.math.abs(targetQ - Q))
+            loss_value += tf.reduce_max(Q**2)
         grads = tape.gradient(loss_value, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         return loss_value
