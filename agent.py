@@ -27,12 +27,12 @@ agent = ReinforcementAgent()
 agent.compile(loss="MAE", optimizer=optimizers.Adamax(learning_rate))
 
 print("Training DQN, please wait...")
+
 # set up lists for keeping track of progress
 scores = []
 rewards = []
 
 try:
-
     # iterate through a number of episodes
     for i_episode in range(num_episodes):
 
@@ -87,7 +87,7 @@ try:
                 if not done:
                     targetQ[i, action[i]] = reward + gamma * maxQ1[i]
                 else:
-                    targetQ[i, action[i]] = 0.0
+                    targetQ[i, action[i]] = 0.
 
             # backpropagate error between predicted and new Q values for state
             agent.train_step(
