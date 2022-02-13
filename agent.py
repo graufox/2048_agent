@@ -20,11 +20,12 @@ env = Game(board_size=BOARD_SIZE, board_depth=BOARD_DEPTH)
 num_episodes = 10000  # number of "games" to train the agent with
 episode_length = 2**20  # max number of moves per game
 
-learning_rate = 1e-4
-gamma = 0.955  # the discount rate of future reward
+learning_rate = 1e-3
+# gamma = 0.955  # the discount rate of future reward
+gamma = 0.7  # the discount rate of future reward
 
-agent = ReinforcementAgent()
-agent.compile(loss="MAE", optimizer=optimizers.Adamax(learning_rate))
+agent = ReinforcementAgent(conv_filters=128, conv_dropout=0.2, dense_units=1024, dense_dropout=0.2)
+agent.compile(loss=None, optimizer=optimizers.Adamax(learning_rate))
 
 print("Training DQN, please wait...")
 
@@ -49,11 +50,10 @@ try:
                 print("-" * 10)
 
             # choose best action, with noise
-            observation_input = np.array([observation], dtype=float)
+            observation_input = np.array([observation], dtype=float) / np.sqrt(BOARD_DEPTH)
             moves = env.available_moves()
             moves_input = np.array(moves, dtype=float)
             Qvals = agent((observation_input, moves_input))
-            ic(Qvals)
 
             # check for any NaN values encountered in output
             if np.isnan(Qvals).any():
@@ -61,33 +61,37 @@ try:
                 raise ValueError
 
             # sample an action according to Q-values
-            p = softmax(Qvals, axis=1) * moves
-            p = p / p.sum(axis=1)
-            try:
-                action = [np.random.choice([0, 1, 2, 3], p=p_ex) for p_ex in p]
-            except ValueError:
+            if i_episode < 1:
+                p = softmax(Qvals, axis=1) * moves
+                p = p / p.sum(axis=1)
+                try:
+                    action = [np.random.choice([0, 1, 2, 3], p=p_ex) for p_ex in p]
+                except ValueError:
+                    action = np.argmax(Qvals, axis=1)
+            else:
                 action = np.argmax(Qvals, axis=1)
 
             # make a step in the environment
             new_observation, reward, done, info = env.step(action[0])
             episode_reward += reward
-            reward = np.log(reward + 2**-1) / np.log(2.0)
+            reward = np.log(reward + 0.5) / np.log(2.)
 
             new_moves = env.available_moves()
 
             # get Q-values for actions in new state
-            new_observation_input = np.array([new_observation], dtype=float)
+            new_observation_input = np.array([new_observation], dtype=float) / np.sqrt(BOARD_DEPTH)
             new_moves_input = np.array(new_moves, dtype=float)
             Q1 = agent((new_observation_input, new_moves_input))
 
             # compute the target Q-values
             maxQ1 = np.max(Q1, axis=1)
-            targetQ = Q1.numpy()
+            targetQ = Qvals.numpy()
             for i in range(len(Q1)):
                 if not done:
                     targetQ[i, action[i]] = reward + gamma * maxQ1[i]
                 else:
                     targetQ[i, action[i]] = 0.
+            # ic(Qvals, action, maxQ1, reward, targetQ)
 
             # backpropagate error between predicted and new Q values for state
             agent.train_step(
