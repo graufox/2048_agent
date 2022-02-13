@@ -91,7 +91,7 @@ try:
 
             # backpropagate error between predicted and new Q values for state
             agent.train_step(
-                (observation_input, moves_input), action, [reward], targetQ
+                (observation_input, moves_input), action, targetQ
             )
 
             # log observations

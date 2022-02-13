@@ -130,7 +130,7 @@ class ReinforcementAgent(tf.keras.models.Model):
 
         observation, available_moves = inputs
 
-        obs_0 = tf.image.rot90(observation, k=0)
+        obs_0 = observation
         obs_90 = tf.image.rot90(observation, k=1)
         obs_180 = tf.image.rot90(observation, k=2)
         obs_270 = tf.image.rot90(observation, k=3)
@@ -142,22 +142,21 @@ class ReinforcementAgent(tf.keras.models.Model):
 
         logQ = tf.reduce_mean(
             [
-                tf.gather(logQ_0, [0, 1, 2, 3], axis=1),
+                logQ_0,
                 tf.gather(logQ_90, [3, 0, 1, 2], axis=1),
                 tf.gather(logQ_180, [2, 3, 0, 1], axis=1),
                 tf.gather(logQ_270, [1, 2, 3, 0], axis=1),
-            ]
+            ],
+            axis=0
         )
-        Q = tf.math.exp(logQ) * available_moves
+        Q = tf.math.exp(tf.keras.backend.clip(logQ, -10., 10.)) * available_moves
         return Q
 
-    @tf.function
-    def train_step(self, x, picked_action, reward, targetQ):
+    # @tf.function
+    def train_step(self, x, picked_action, targetQ):
         with tf.GradientTape() as tape:
             Q = self(x, training=True)
-            pickedQ = tf.gather(targetQ, picked_action, axis=1)
-            loss_value = tf.reduce_mean(tf.math.abs(targetQ - Q))
-            loss_value += tf.reduce_max(Q**2)
+            loss_value = tf.reduce_mean((targetQ - Q)**2)
         grads = tape.gradient(loss_value, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         return loss_value
