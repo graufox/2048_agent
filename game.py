@@ -171,7 +171,12 @@ class Game:
         if not self.is_done():
             self.last_board = self.board
 
-        return board_2_array(self.board, self.board_size, self.board_depth), reward, self.is_done(), {}
+        return (
+            board_2_array(self.board, self.board_size, self.board_depth),
+            reward,
+            self.is_done(),
+            {},
+        )
 
 
 if __name__ == "__main__":
