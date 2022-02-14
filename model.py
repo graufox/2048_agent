@@ -60,7 +60,8 @@ class Conv3DStack(layers.Layer):
     ):
         super().__init__()
         self.conv_layer = layers.Conv3D(
-            filters=filters, kernel_size=kernel_size, activation=activation, padding=padding
+            filters=filters, kernel_size=kernel_size, activation=activation, padding=padding,
+            kernel_constraint=constraints.MaxNorm(2., axis=[0, 1, 2])
         )
         self.bn_layer = layers.BatchNormalization()
         self.dropout_layer = layers.SpatialDropout3D(dropout_rate)
