@@ -52,6 +52,8 @@ if not args.new:
         print('weights not found, initializing new model')
         agent.save_weights(checkpoint_path)
 
+REWARD_SCALING_FACTOR = 1. / 1000.
+
 try:
     # iterate through a number of episodes
     for i_episode in range(num_episodes):
@@ -94,10 +96,9 @@ try:
             new_observation, reward, done, info = env.step(action[0])
             episode_reward += reward
             if reward > 0:
-                reward = (np.log(reward) / np.log(2.)) / 100.
+                reward = reward * REWARD_SCALING_FACTOR
             if done:
-                reward = -10 / 100.
-            ic(Qvals, reward)
+                reward = -128 * REWARD_SCALING_FACTOR
 
             new_moves = env.available_moves()
 
