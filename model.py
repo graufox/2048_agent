@@ -13,7 +13,9 @@ class DenseStack(layers.Layer):
     ):
         super().__init__()
         self.dense_layer = layers.Dense(
-            units=units, activation=activation, kernel_constraint=constraints.MaxNorm(2.)
+            units=units,
+            activation=activation,
+            kernel_constraint=constraints.MaxNorm(2.0),
         )
         self.bn_layer = layers.BatchNormalization()
         self.dropout_layer = layers.Dropout(dropout_rate)
@@ -36,8 +38,11 @@ class Conv2DStack(layers.Layer):
     ):
         super().__init__()
         self.conv_layer = layers.Conv2D(
-            filters=filters, kernel_size=kernel_size, activation=activation, padding=padding,
-            kernel_constraint=constraints.MaxNorm(2., axis=[0, 1, 2])
+            filters=filters,
+            kernel_size=kernel_size,
+            activation=activation,
+            padding=padding,
+            kernel_constraint=constraints.MaxNorm(2.0, axis=[0, 1, 2]),
         )
         self.bn_layer = layers.BatchNormalization()
         self.dropout_layer = layers.SpatialDropout2D(dropout_rate)
@@ -60,8 +65,11 @@ class Conv3DStack(layers.Layer):
     ):
         super().__init__()
         self.conv_layer = layers.Conv3D(
-            filters=filters, kernel_size=kernel_size, activation=activation, padding=padding,
-            kernel_constraint=constraints.MaxNorm(2., axis=[0, 1, 2])
+            filters=filters,
+            kernel_size=kernel_size,
+            activation=activation,
+            padding=padding,
+            kernel_constraint=constraints.MaxNorm(2.0, axis=[0, 1, 2]),
         )
         self.bn_layer = layers.BatchNormalization()
         self.dropout_layer = layers.SpatialDropout3D(dropout_rate)
@@ -89,7 +97,7 @@ class ConvModel(tf.keras.models.Model):
         self.preproc = Conv2DStack(
             filters=conv_filters,
             kernel_size=(1, 1),
-            dropout_rate=0.,
+            dropout_rate=0.0,
         )
         self.convs = []
         for _ in range(3):
@@ -105,10 +113,7 @@ class ConvModel(tf.keras.models.Model):
             units=dense_units,
             dropout_rate=dense_dropout,
         )
-        self.output_layer = DenseStack(
-            units=output_units,
-            dropout_rate=0.
-        )
+        self.output_layer = DenseStack(units=output_units, dropout_rate=0.0)
 
     def call(self, inputs, training=False):
         x = self.preproc(inputs)
@@ -139,7 +144,7 @@ class ReinforcementAgent(tf.keras.models.Model):
         dense_units=1024,
         output_units=4,
         dense_dropout=0.5,
-        kernel_size=(3, 3)
+        kernel_size=(3, 3),
     ):
         super().__init__()
 
@@ -173,7 +178,7 @@ class ReinforcementAgent(tf.keras.models.Model):
                 tf.gather(logQ_180, [2, 3, 0, 1], axis=1),
                 tf.gather(logQ_270, [1, 2, 3, 0], axis=1),
             ],
-            axis=0
+            axis=0,
         )
         Q = tf.math.exp(logQ) * available_moves
         return Q
@@ -182,9 +187,7 @@ class ReinforcementAgent(tf.keras.models.Model):
     def train_step(self, x, picked_action, targetQ):
         with tf.GradientTape() as tape:
             Q = self(x, training=True)
-            loss_value = tf.reduce_mean((targetQ - Q)**2)
+            loss_value = tf.reduce_mean((targetQ - Q) ** 2)
         grads = tape.gradient(loss_value, self.trainable_weights)
-        self.optimizer.apply_gradients(
-            zip(grads, self.trainable_weights)
-        )
+        self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         return loss_value
