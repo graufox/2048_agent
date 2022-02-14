@@ -49,13 +49,13 @@ try:
                 print("-" * 10)
 
             # choose best action, with noise
-            observation_input = np.array([observation], dtype=float) / np.sqrt(BOARD_DEPTH)
+            observation_input = np.array([observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
             moves = env.available_moves()
-            moves_input = np.array(moves, dtype=float)
+            moves_input = np.array(moves, dtype=np.float32)
             Qvals = agent((observation_input, moves_input))
 
             # check for any NaN values encountered in output
-            if np.isnan(Qvals).any():
+            if np.isnan(Qvals.numpy()).any():
                 ic(Qvals)
                 raise ValueError
 
@@ -78,8 +78,8 @@ try:
             new_moves = env.available_moves()
 
             # get Q-values for actions in new state
-            new_observation_input = np.array([new_observation], dtype=float) / np.sqrt(BOARD_DEPTH)
-            new_moves_input = np.array(new_moves, dtype=float)
+            new_observation_input = np.array([new_observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
+            new_moves_input = np.array(new_moves, dtype=np.float32)
             Q1 = agent((new_observation_input, new_moves_input))
 
             # compute the target Q-values
