@@ -168,7 +168,7 @@ class ReinforcementAgent(tf.keras.models.Model):
         Q = tf.math.exp(logQ) * available_moves
         return Q
 
-    # @tf.function
+    @tf.function
     def train_step(self, x, picked_action, targetQ):
         with tf.GradientTape() as tape:
             Q = self(x, training=True)
