@@ -23,7 +23,12 @@ episode_length = 2**20  # max number of moves per game
 learning_rate = 1e-3
 gamma = 0.7  # the discount rate of future reward
 
-agent = ReinforcementAgent(conv_filters=128, conv_dropout=0.2, dense_units=1024, dense_dropout=0.2)
+agent = ReinforcementAgent(
+    conv_filters=128,
+    conv_dropout=0.2,
+    dense_units=1024,
+    dense_dropout=0.2
+)
 agent.compile(loss=None, optimizer=optimizers.Adamax(learning_rate))
 
 print("Training DQN, please wait...")
