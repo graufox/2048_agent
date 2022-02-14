@@ -93,10 +93,11 @@ try:
             # make a step in the environment
             new_observation, reward, done, info = env.step(action[0])
             episode_reward += reward
-            if reward <= 0:
-                reward = -1
+            if reward > 0:
+                reward = (np.log(reward) / np.log(2.)) / 100.
             if done:
-                reward = -10
+                reward = -10 / 100.
+            ic(Qvals, reward)
 
             new_moves = env.available_moves()
 
