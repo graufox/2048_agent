@@ -86,11 +86,15 @@ class ConvModel(tf.keras.models.Model):
             kernel_size=(1, 1),
             dropout_rate=0.,
         )
-        self.conv = Conv2DStack(
-            filters=conv_filters,
-            kernel_size=kernel_size,
-            dropout_rate=conv_dropout,
-        )
+        self.convs = []
+        for _ in range(3):
+            self.convs.append(
+                Conv2DStack(
+                    filters=conv_filters,
+                    kernel_size=kernel_size,
+                    dropout_rate=conv_dropout,
+                )
+            )
         self.flatten = layers.Flatten()
         self.dense = DenseStack(
             units=dense_units,
@@ -100,8 +104,10 @@ class ConvModel(tf.keras.models.Model):
 
     def call(self, inputs, training=False):
         x = self.preproc(inputs)
-        x = self.conv(x, training=training)
-        x = self.flatten(x)
+        x_conv = self.convs[0](x)
+        for conv in self.convs[1:]:
+            x_conv = x_conv + conv(x_conv, training=training)
+        x = self.flatten(x_conv)
         x = self.dense(x, training=training)
         output = self.output_layer(x)
         return output
