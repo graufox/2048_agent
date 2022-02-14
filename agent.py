@@ -36,7 +36,7 @@ agent = ReinforcementAgent(
     dense_units=1024,
     dense_dropout=0.5
 )
-agent.compile(loss=None, optimizer=optimizers.Adamax(learning_rate))
+agent.compile(optimizer=optimizers.Adamax(learning_rate))
 
 print("Training DQN, please wait...")
 
