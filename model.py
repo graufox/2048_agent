@@ -91,36 +91,39 @@ class ConvModel(tf.keras.models.Model):
         output_units=4,
         kernel_size=(3, 3),
         output_activation=None,
+        board_size=4,
+        board_depth=16,
     ):
         super().__init__()
 
-        self.preproc = Conv2DStack(
+        self.board_size = board_size
+        self.board_depth = board_depth
+        self.preproc = Conv3DStack(
             filters=conv_filters,
-            kernel_size=(1, 1),
+            kernel_size=(1, 1, 5),
             dropout_rate=0.0,
         )
-        self.convs = []
-        for _ in range(3):
-            self.convs.append(
-                Conv2DStack(
-                    filters=conv_filters,
-                    kernel_size=kernel_size,
-                    dropout_rate=conv_dropout,
-                )
-            )
-        self.flatten = layers.Flatten()
+        self.conv = Conv2DStack(
+            filters=conv_filters,
+            kernel_size=(3, 3),
+            dropout_rate=0.0,
+        )
+        self.conv_flatten = layers.Flatten()
         self.dense = DenseStack(
             units=dense_units,
             dropout_rate=dense_dropout,
         )
-        self.output_layer = DenseStack(units=output_units, dropout_rate=0.0)
+        self.output_layer = DenseStack(
+            units=output_units,
+            dropout_rate=0.0
+        )
 
     def call(self, inputs, training=False):
-        x = self.preproc(inputs)
-        x_conv = self.convs[0](x)
-        for conv in self.convs[1:]:
-            x_conv = x_conv + conv(x_conv, training=training)
-        x = self.flatten(x_conv)
+        x = layers.Reshape((self.board_size, self.board_size, self.board_depth, 1))(inputs)
+        x = self.preproc(x)
+        x = layers.Reshape((self.board_size, self.board_size, -1))(x)
+        x_conv = self.conv(x, training=training)
+        x = self.conv_flatten(x_conv)
         x = self.dense(x, training=training)
         output = self.output_layer(x)
         return output
