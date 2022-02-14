@@ -1,3 +1,5 @@
+import argparse
+
 import numpy as np
 import tensorflow as tf
 from icecream import ic
@@ -9,6 +11,10 @@ from tensorflow.keras import optimizers
 from funcs import ema
 from game import Game
 from model import ReinforcementAgent
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--new', action="store_true", help='make a new model')
+args = parser.parse_args()
 
 # define environment, in this case a game of 2048
 BOARD_SIZE = 4
@@ -37,8 +43,13 @@ print("Training DQN, please wait...")
 scores = []
 rewards = []
 
-checkpoint_path = "training/cp-{:04d}.ckpt".format
-agent.save_weights(checkpoint_path(0))
+checkpoint_path = "training/model_checkpoint.ckpt"
+if not args.new:
+    try:
+        agent.load_weights(checkpoint_path)
+    except errors_impl.NotFoundError:
+        print('weights not found, initializing new model')
+        agent.save_weights(checkpoint_path)
 
 try:
     # iterate through a number of episodes
@@ -123,15 +134,14 @@ try:
         scores += [env.score]
         rewards += [episode_reward]
 
-        if i_episode % 50 == 0 and i_episode > 0:
-            agent.save_weights(checkpoint_path(i_episode))
+        agent.save_weights(checkpoint_path)
 
 except KeyboardInterrupt:
     print("aborted by user")
 except ValueError as e:
     print(f"value error: {e}")
 
-agent.save_weights(checkpoint_path(i_episode))
+agent.save_weights(checkpoint_path)
 
 # display statistics
 scores = np.array(scores)
