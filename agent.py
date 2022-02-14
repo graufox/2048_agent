@@ -117,9 +117,10 @@ try:
             # ic(Qvals, action, maxQ1, reward, targetQ)
 
             # backpropagate error between predicted and new Q values for state
-            agent.train_step(
-                (observation_input, moves_input), action, targetQ
-            )
+            if np.random.rand() < 0.1 / (i_episode + 1.) ** 0.25:
+                agent.train_step(
+                    (observation_input, moves_input), action, targetQ
+                )
 
             # log observations
             observation = new_observation.copy()
