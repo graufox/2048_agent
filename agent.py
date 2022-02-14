@@ -65,8 +65,8 @@ try:
                 raise ValueError
 
             # sample an action according to Q-values
-            if i_episode < 1:
-                p = softmax(Qvals, axis=1) * moves
+            if i_episode < 10:
+                p = softmax(Qvals / 128., axis=1) * moves
                 p = p / p.sum(axis=1)
                 try:
                     action = [np.random.choice([0, 1, 2, 3], p=p_ex) for p_ex in p]
