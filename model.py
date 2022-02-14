@@ -122,6 +122,16 @@ class ConvModel(tf.keras.models.Model):
 
 
 class ReinforcementAgent(tf.keras.models.Model):
+    """
+    Deep Q-Network Reinforcement Learning Agent
+
+    Deep Q-Network Reinforcement Learning Agent, implemented in TensorFlow 2.
+        The network is based on a rotationally-symmetrized deep residual convo-
+        lution network. The output are one of 4 actions, which are associated
+        with up, right, down, and left respectfully. The output of the network
+        is the estimated Q-value for the actions at the given state.
+    """
+
     def __init__(
         self,
         conv_filters=128,
