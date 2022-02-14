@@ -37,6 +37,9 @@ print("Training DQN, please wait...")
 scores = []
 rewards = []
 
+checkpoint_path = "training/cp-{:04d}.ckpt".format
+agent.save_weights(checkpoint_path(0))
+
 try:
     # iterate through a number of episodes
     for i_episode in range(num_episodes):
@@ -120,10 +123,15 @@ try:
         scores += [env.score]
         rewards += [episode_reward]
 
+        if i_episode % 50 == 0 and i_episode > 0:
+            agent.save_weights(checkpoint_path(i_episode))
+
 except KeyboardInterrupt:
     print("aborted by user")
 except ValueError as e:
     print(f"value error: {e}")
+
+agent.save_weights(checkpoint_path(i_episode))
 
 # display statistics
 scores = np.array(scores)
