@@ -1,6 +1,7 @@
 import tensorflow as tf
 from icecream import ic
 from tensorflow.keras import layers
+from tensorflow.keras import constraints
 
 
 class DenseStack(layers.Layer):
@@ -12,7 +13,7 @@ class DenseStack(layers.Layer):
     ):
         super().__init__()
         self.dense_layer = layers.Dense(
-            units=units, activation=activation, kernel_constraint=tf.keras.constraints.MaxNorm(2.)
+            units=units, activation=activation, kernel_constraint=constraints.MaxNorm(2.)
         )
         self.bn_layer = layers.BatchNormalization()
         self.dropout_layer = layers.Dropout(dropout_rate)
@@ -36,7 +37,7 @@ class Conv2DStack(layers.Layer):
         super().__init__()
         self.conv_layer = layers.Conv2D(
             filters=filters, kernel_size=kernel_size, activation=activation, padding=padding,
-            kernel_constraint=tf.keras.constraints.MaxNorm(2., axis=[0, 1, 2])
+            kernel_constraint=constraints.MaxNorm(2., axis=[0, 1, 2])
         )
         self.bn_layer = layers.BatchNormalization()
         self.dropout_layer = layers.SpatialDropout2D(dropout_rate)
@@ -103,7 +104,10 @@ class ConvModel(tf.keras.models.Model):
             units=dense_units,
             dropout_rate=dense_dropout,
         )
-        self.output_layer = DenseStack(units=4, dropout_rate=0.)
+        self.output_layer = DenseStack(
+            units=output_units,
+            dropout_rate=0.
+        )
 
     def call(self, inputs, training=False):
         x = self.preproc(inputs)
