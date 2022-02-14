@@ -78,7 +78,9 @@ class ConvModel(tf.keras.models.Model):
         conv_dropout=0.2,
         dense_units=1024,
         dense_dropout=0.5,
+        output_units=4,
         kernel_size=(3, 3),
+        output_activation=None,
     ):
         super().__init__()
 
@@ -120,6 +122,7 @@ class ReinforcementAgent(tf.keras.models.Model):
         conv_filters=128,
         conv_dropout=0.2,
         dense_units=1024,
+        output_units=4,
         dense_dropout=0.5,
         kernel_size=(3, 3)
     ):
@@ -130,7 +133,8 @@ class ReinforcementAgent(tf.keras.models.Model):
             conv_dropout=conv_dropout,
             dense_units=dense_units,
             dense_dropout=dense_dropout,
-            kernel_size=kernel_size
+            kernel_size=kernel_size,
+            output_activation=None,
         )
 
     def call(self, inputs, training=False):
