@@ -84,6 +84,7 @@ class Conv3DStack(layers.Layer):
 class ConvModel(tf.keras.models.Model):
     def __init__(
         self,
+        preproc_filters=8,
         conv_filters=128,
         conv_dropout=0.2,
         dense_units=1024,
@@ -99,14 +100,15 @@ class ConvModel(tf.keras.models.Model):
         self.board_size = board_size
         self.board_depth = board_depth
         self.preproc = Conv3DStack(
-            filters=conv_filters,
+            filters=preproc_filters,
             kernel_size=(1, 1, 5),
             dropout_rate=0.0,
+            padding='valid'
         )
         self.conv = Conv2DStack(
             filters=conv_filters,
             kernel_size=(3, 3),
-            dropout_rate=0.0,
+            dropout_rate=0.5,
         )
         self.conv_flatten = layers.Flatten()
         self.dense = DenseStack(
@@ -142,6 +144,7 @@ class ReinforcementAgent(tf.keras.models.Model):
 
     def __init__(
         self,
+        preproc_filters=8,
         conv_filters=128,
         conv_dropout=0.2,
         dense_units=1024,
@@ -152,6 +155,7 @@ class ReinforcementAgent(tf.keras.models.Model):
         super().__init__()
 
         self.base_model = ConvModel(
+            preproc_filters=preproc_filters,
             conv_filters=conv_filters,
             conv_dropout=conv_dropout,
             dense_units=dense_units,
