@@ -187,7 +187,6 @@ class ReinforcementAgent(tf.keras.models.Model):
             ],
             axis=0,
         )
-        # Q = tf.math.exp(logQ) * available_moves
         Q = tf.nn.softplus(logQ) * available_moves
         return Q
 
