@@ -75,23 +75,23 @@ try:
             observation_input = np.array([observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
             moves = env.available_moves()
             moves_input = np.array(moves, dtype=np.float32)
-            Qvals = agent((observation_input, moves_input)) / REWARD_SCALING_FACTOR
+            Qvals, action = agent((observation_input, moves_input)) / REWARD_SCALING_FACTOR
 
             # check for any NaN values encountered in output
             if np.isnan(Qvals.numpy()).any():
                 ic(Qvals)
                 raise ValueError
 
-            # sample an action according to Q-values
-            if i_episode < 10:
-                p = softmax(Qvals, axis=1) * moves
-                p = p / p.sum(axis=1)
-                try:
-                    action = [np.random.choice([0, 1, 2, 3], p=p_ex) for p_ex in p]
-                except ValueError:
-                    action = np.argmax(Qvals, axis=1)
-            else:
-                action = np.argmax(Qvals, axis=1)
+            # # sample an action according to Q-values
+            # if i_episode < 10:
+            #     p = softmax(Qvals, axis=1) * moves
+            #     p = p / p.sum(axis=1)
+            #     try:
+            #         action = [np.random.choice([0, 1, 2, 3], p=p_ex) for p_ex in p]
+            #     except ValueError:
+            #         action = np.argmax(Qvals, axis=1)
+            # else:
+            #     action = np.argmax(Qvals, axis=1)
 
             # make a step in the environment
             new_observation, reward, done, info = env.step(action[0])
@@ -102,7 +102,7 @@ try:
             # get Q-values for actions in new state
             new_observation_input = np.array([new_observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
             new_moves_input = np.array(new_moves, dtype=np.float32)
-            Q1 = agent((new_observation_input, new_moves_input)) / REWARD_SCALING_FACTOR
+            Q1, _ = agent((new_observation_input, new_moves_input)) / REWARD_SCALING_FACTOR
 
             # compute the target Q-values
             maxQ1 = np.max(Q1, axis=1)

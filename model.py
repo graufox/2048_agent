@@ -190,7 +190,8 @@ class ReinforcementAgent(tf.keras.models.Model):
             axis=0,
         )
         Q = tf.nn.softplus(logQ) * available_moves
-        return Q
+        action = tf.argmax(Q, axis=1)
+        return Q, action
 
     @tf.function
     def train_step(self, x, picked_action, targetQ):
