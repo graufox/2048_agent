@@ -52,7 +52,7 @@ if not args.new:
         print('weights not found, initializing new model')
         agent.save_weights(checkpoint_path)
 
-REWARD_SCALING_FACTOR = 1. / 1000.
+REWARD_SCALING_FACTOR = 1. / 100.
 
 try:
     # iterate through a number of episodes
