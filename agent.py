@@ -31,10 +31,10 @@ learning_rate = 1e-3
 gamma = 0.997  # the discount rate of future reward
 
 agent = ReinforcementAgent(
-    conv_filters=128,
-    conv_dropout=0.1,
-    dense_units=128,
-    dense_dropout=0.1
+    conv_filters=64,
+    conv_dropout=0.2,
+    dense_units=1024,
+    dense_dropout=0.2
 )
 agent.compile(optimizer=optimizers.Adamax(learning_rate))
 
