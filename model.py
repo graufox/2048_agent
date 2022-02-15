@@ -84,8 +84,7 @@ class Conv3DStack(layers.Layer):
 class ConvModel(tf.keras.models.Model):
     def __init__(
         self,
-        preproc_filters=8,
-        conv_filters=128,
+        conv_filters=64,
         conv_dropout=0.2,
         dense_units=1024,
         dense_dropout=0.5,
@@ -97,35 +96,36 @@ class ConvModel(tf.keras.models.Model):
     ):
         super().__init__()
 
-        self.board_size = board_size
-        self.board_depth = board_depth
-        self.preproc = Conv3DStack(
-            filters=preproc_filters,
-            kernel_size=(1, 1, 5),
-            dropout_rate=0.0,
+        self.preproc = Conv2DStack(
+            filters=conv_filters,
+            kernel_size=(1, 1),
+            dropout_rate=0.,
             padding='valid'
         )
-        self.conv = Conv2DStack(
-            filters=conv_filters,
-            kernel_size=(3, 3),
-            dropout_rate=0.5,
-        )
+        self.convs = []
+        for i in range(num_conv_stacks):
+            self.convs.append(
+                Conv2DStack(
+                    filters=conv_filters,
+                    kernel_size=(3, 3),
+                    dropout_rate=conv_dropout,
+                )
+            )
         self.conv_flatten = layers.Flatten()
         self.dense = DenseStack(
             units=dense_units,
             dropout_rate=dense_dropout,
         )
-        self.output_layer = DenseStack(
+        self.output_layer = Dense(
             units=output_units,
-            dropout_rate=0.0
+            activation=output_activation,
         )
 
     def call(self, inputs, training=False):
-        x = layers.Reshape((self.board_size, self.board_size, self.board_depth, 1))(inputs)
-        x = self.preproc(x)
-        x = layers.Reshape((self.board_size, self.board_size, -1))(x)
-        x_conv = self.conv(x, training=training)
-        x = self.conv_flatten(x_conv)
+        x = self.preproc(inputs)
+        for conv in self.convs:
+            x = x + conv(x, training=training)
+        x = self.conv_flatten(x)
         x = self.dense(x, training=training)
         output = self.output_layer(x)
         return output
