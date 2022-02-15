@@ -75,7 +75,7 @@ try:
             observation_input = np.array([observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
             moves = env.available_moves()
             moves_input = np.array(moves, dtype=np.float32)
-            Qvals = agent((observation_input, moves_input))
+            Qvals = agent((observation_input, moves_input)) / REWARD_SCALING_FACTOR
 
             # check for any NaN values encountered in output
             if np.isnan(Qvals.numpy()).any():
@@ -84,7 +84,7 @@ try:
 
             # sample an action according to Q-values
             if i_episode < 10:
-                p = softmax(Qvals / 128., axis=1) * moves
+                p = softmax(Qvals, axis=1) * moves
                 p = p / p.sum(axis=1)
                 try:
                     action = [np.random.choice([0, 1, 2, 3], p=p_ex) for p_ex in p]
@@ -96,17 +96,13 @@ try:
             # make a step in the environment
             new_observation, reward, done, info = env.step(action[0])
             episode_reward += reward
-            if reward > 0:
-                reward = reward * REWARD_SCALING_FACTOR
-            if done:
-                reward = -128 * REWARD_SCALING_FACTOR
 
             new_moves = env.available_moves()
 
             # get Q-values for actions in new state
             new_observation_input = np.array([new_observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
             new_moves_input = np.array(new_moves, dtype=np.float32)
-            Q1 = agent((new_observation_input, new_moves_input))
+            Q1 = agent((new_observation_input, new_moves_input)) / REWARD_SCALING_FACTOR
 
             # compute the target Q-values
             maxQ1 = np.max(Q1, axis=1)
@@ -115,14 +111,13 @@ try:
                 if not done:
                     targetQ[i, action[i]] = reward + gamma * maxQ1[i]
                 else:
-                    targetQ[i, action[i]] = 0.
-            # ic(Qvals, action, maxQ1, reward, targetQ)
+                    targetQ[i, :] = 0.
+            # ic(reward, Qvals.numpy(), targetQ, ((Qvals.numpy() - targetQ)**2).mean())
 
             # backpropagate error between predicted and new Q values for state
-            if np.random.rand() < 0.1 / (i_episode + 1.) ** 0.25:
-                agent.train_step(
-                    (observation_input, moves_input), action, targetQ
-                )
+            agent.train_step(
+                (observation_input, moves_input), action, targetQ
+            )
 
             # log observations
             observation = new_observation.copy()
