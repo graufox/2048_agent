@@ -117,7 +117,7 @@ class ConvModel(tf.keras.models.Model):
             units=dense_units,
             dropout_rate=dense_dropout,
         )
-        self.output_layer = Dense(
+        self.output_layer = layers.Dense(
             units=output_units,
             activation=output_activation,
         )
