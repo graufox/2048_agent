@@ -194,10 +194,12 @@ class ReinforcementAgent(tf.keras.models.Model):
         return Q, action
 
     @tf.function
-    def train_step(self, x, picked_action, targetQ):
+    def train_step(self, x, reward, targetQ):
         with tf.GradientTape() as tape:
             Q, action = self(x, training=True)
             loss_value = tf.reduce_mean((targetQ - Q) ** 2)
+            selected_Q = tf.gather(Q, action)
+            loss_value -= tf.math.log(selected_Q) * reward
         grads = tape.gradient(loss_value, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         return loss_value
