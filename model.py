@@ -101,7 +101,7 @@ class ConvModel(tf.keras.models.Model):
             filters=conv_filters,
             kernel_size=(1, 1),
             dropout_rate=0.,
-            padding='valid'
+            padding='same'
         )
         self.convs = []
         for i in range(num_conv_stacks):
@@ -110,6 +110,7 @@ class ConvModel(tf.keras.models.Model):
                     filters=conv_filters,
                     kernel_size=(3, 3),
                     dropout_rate=conv_dropout,
+                    padding='same'
                 )
             )
         self.conv_flatten = layers.Flatten()
