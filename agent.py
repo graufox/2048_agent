@@ -65,10 +65,11 @@ try:
         episode_reward = 0
         for t in range(episode_length):
 
-            # print the board out
-            if i_episode % 100 == 0:
-                print(env.board)
-                print("-" * 10)
+            # # print the board out
+            # if i_episode % 100 == 0:
+                # print(env.board)
+                # print("-" * 10)
+                # ic(env.board)
 
             # choose best action, with noise
             observation_input = np.array([observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
@@ -128,10 +129,7 @@ try:
 
             # end game if finished
             if done:
-                if i_episode % 100 == 0:
-                    print(env.board)
-                    print("-" * 10)
-                print("(score,max tile) = ({},{})".format(env.score, env.board.max()))
+                ic(i_episode, env.board, env.score, env.board.max())
                 break
 
         # log scores and rewards for game
