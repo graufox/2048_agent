@@ -52,8 +52,6 @@ if not args.new:
         print('weights not found, initializing new model')
         agent.save_weights(checkpoint_path)
 
-REWARD_SCALING_FACTOR = 1. / 100.
-
 try:
     # iterate through a number of episodes
     for i_episode in range(num_episodes):
@@ -75,7 +73,7 @@ try:
             observation_input = np.array([observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
             moves = env.available_moves()
             moves_input = np.array(moves, dtype=np.float32)
-            Qvals, action = agent((observation_input, moves_input)) / REWARD_SCALING_FACTOR
+            Qvals, action = agent((observation_input, moves_input))
 
             # check for any NaN values encountered in output
             if np.isnan(Qvals.numpy()).any():
@@ -102,7 +100,7 @@ try:
             # get Q-values for actions in new state
             new_observation_input = np.array([new_observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
             new_moves_input = np.array(new_moves, dtype=np.float32)
-            Q1, _ = agent((new_observation_input, new_moves_input)) / REWARD_SCALING_FACTOR
+            Q1, _ = agent((new_observation_input, new_moves_input))
 
             # compute the target Q-values
             maxQ1 = np.max(Q1, axis=1)
