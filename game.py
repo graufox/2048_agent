@@ -105,6 +105,7 @@ class Game:
                     if self.board[i, j] == 0:
                         blank_ids += [(i, j)]
             pos = blank_ids[randint(len(blank_ids))]
+            tile_value = (2 if (rand() < 0.9) else 4)
             self.board[pos] = 2
 
     def slide_up(self, testing=False):
