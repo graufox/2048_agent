@@ -56,6 +56,7 @@ try:
     # iterate through a number of episodes
     for i_episode in range(num_episodes):
 
+
         # start with a fresh environment
         observation = env.reset()
 
@@ -63,14 +64,14 @@ try:
         episode_reward = 0
         for t in range(episode_length):
 
-            # # print the board out
-            # if i_episode % 100 == 0:
-                # print(env.board)
-                # print("-" * 10)
-                # ic(env.board)
+            if i_episode % 10 == 0:
+                print(env.board)
+                print("-" * 10)
 
             # choose best action, with noise
-            observation_input = np.array([observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
+            observation_input = \
+                np.array([observation], dtype=np.float32) \
+                / np.sqrt(BOARD_DEPTH)
             moves = env.available_moves()
             moves_input = np.array(moves, dtype=np.float32)
             Qvals, action = agent((observation_input, moves_input))
@@ -87,7 +88,9 @@ try:
             new_moves = env.available_moves()
 
             # get Q-values for actions in new state
-            new_observation_input = np.array([new_observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
+            new_observation_input = \
+                np.array([new_observation], dtype=np.float32) \
+                / np.sqrt(BOARD_DEPTH)
             new_moves_input = np.array(new_moves, dtype=np.float32)
             Q1, _ = agent((new_observation_input, new_moves_input))
 
@@ -99,9 +102,8 @@ try:
                     targetQ[i, action[i]] = reward + gamma * maxQ1[i]
                 else:
                     targetQ[i, :] = 0.
-            # ic(reward, Qvals.numpy(), targetQ, ((Qvals.numpy() - targetQ)**2).mean())
 
-            # backpropagate error between predicted and new Q values for state
+            # backpropagate error between predicted and new Q values
             agent.train_step(
                 (observation_input, moves_input), reward, targetQ
             )
@@ -117,7 +119,6 @@ try:
         # log scores and rewards for game
         scores += [env.score]
         rewards += [episode_reward]
-
         agent.save_weights(checkpoint_path)
 
 except KeyboardInterrupt:
