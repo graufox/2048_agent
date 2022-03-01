@@ -94,15 +94,18 @@ class ConvModel(tf.keras.models.Model):
         output_activation=None,
         board_size=4,
         board_depth=16,
+        use_preprocessing=True
     ):
         super().__init__()
 
-        self.preproc = Conv2DStack(
-            filters=conv_filters,
-            kernel_size=(1, 1),
-            dropout_rate=0.,
-            padding='same'
-        )
+        self.preproc = None
+        if use_preprocessing:
+            self.preproc = Conv2DStack(
+                filters=conv_filters,
+                kernel_size=(1, 1),
+                dropout_rate=0.,
+                padding='same'
+            )
         self.convs = []
         for i in range(num_conv_stacks):
             self.convs.append(
@@ -123,8 +126,9 @@ class ConvModel(tf.keras.models.Model):
             activation=output_activation,
         )
 
-    def call(self, inputs, training=False):
-        x = self.preproc(inputs)
+    def call(self, x, training=False):
+        if self.preproc is not None:
+            x = self.preproc(x)
         for conv in self.convs:
             x = x + conv(x, training=training)
         x = self.conv_flatten(x)
@@ -153,6 +157,7 @@ class ReinforcementAgent(tf.keras.models.Model):
         output_units=4,
         dense_dropout=0.5,
         kernel_size=(3, 3),
+        use_preprocessing=True,
     ):
         super().__init__()
 
@@ -164,6 +169,7 @@ class ReinforcementAgent(tf.keras.models.Model):
             dense_dropout=dense_dropout,
             kernel_size=kernel_size,
             output_activation=None,
+            use_preprocessing=use_preprocessing,
         )
 
     def call(self, inputs, training=False):
@@ -189,7 +195,7 @@ class ReinforcementAgent(tf.keras.models.Model):
             ],
             axis=0,
         )
-        Q = tf.nn.softplus(logQ)
+        Q = tf.nn.leaky_relu(logQ, alpha=0.1)
         Q_masked = Q * available_moves
         action = tf.argmax(Q_masked, axis=1)
         return Q, action
@@ -198,10 +204,8 @@ class ReinforcementAgent(tf.keras.models.Model):
     def train_step(self, x, reward, targetQ):
         with tf.GradientTape() as tape:
             Q, action = self(x, training=True)
-            loss_value = tf.reduce_mean((targetQ - Q) ** 2)
             selected_Q = tf.gather(Q, action, axis=1)
-            # ic(Q, reward, action, selected_Q)
-            # loss_value -= tf.math.log(selected_Q + 1e-8) * reward
+            loss_value = tf.reduce_mean((targetQ - Q) ** 2)
             loss_value -= 1e6 * tf.reduce_mean(tf.math.reduce_variance(Q, axis=1))
         grads = tape.gradient(loss_value, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
