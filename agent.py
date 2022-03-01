@@ -80,17 +80,6 @@ try:
                 ic(Qvals)
                 raise ValueError
 
-            # # sample an action according to Q-values
-            # if i_episode < 10:
-            #     p = softmax(Qvals, axis=1) * moves
-            #     p = p / p.sum(axis=1)
-            #     try:
-            #         action = [np.random.choice([0, 1, 2, 3], p=p_ex) for p_ex in p]
-            #     except ValueError:
-            #         action = np.argmax(Qvals, axis=1)
-            # else:
-            #     action = np.argmax(Qvals, axis=1)
-
             # make a step in the environment
             new_observation, reward, done, info = env.step(action[0])
             episode_reward += reward
