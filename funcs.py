@@ -15,14 +15,13 @@ def ema(data, a):
         return smooth_data
 
 
-def board_2_array(board, board_size=4, board_depth=16):
+def board_2_array(board, board_size=4, board_depth=17):
     """
     outputs a 4 x 4 x 16 array with one-hot encodings for the tiles
         board  = 4 x 4 numpy array of tile values associated to board
     """
     assert len(board.shape) == 2
     channels = []
-    channels += [np.zeros(shape=(board_size, board_size)) == board]
     for i in range(1, board_depth):
         channels += [np.ones(shape=(board_size, board_size)) * (2**i) == board]
     return np.stack(channels, axis=-1)

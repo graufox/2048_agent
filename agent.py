@@ -19,7 +19,7 @@ args = parser.parse_args()
 
 # define environment, in this case a game of 2048
 BOARD_SIZE = 4
-BOARD_DEPTH = 16
+BOARD_DEPTH = 17
 env = Game(board_size=BOARD_SIZE, board_depth=BOARD_DEPTH)
 
 # make model for Q

@@ -42,7 +42,7 @@ class Game:
     python class for the game 2048
     """
 
-    def __init__(self, board_size=4, board_depth=16):
+    def __init__(self, board_size=4, board_depth=17):
         self.board_size = board_size
         self.board_depth = board_depth
         self.board = np.zeros((board_size, board_size), dtype=np.int32)
