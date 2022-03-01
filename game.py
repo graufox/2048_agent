@@ -97,16 +97,14 @@ class Game:
 
     def add_random_tile(self):
         """add new tile (usually 2) to a random blank spot"""
-        total_blanks = (self.board == 0).sum()
-        if total_blanks > 0:
-            blank_ids = []
-            for i in range(self.board_size):
-                for j in range(self.board_size):
-                    if self.board[i, j] == 0:
-                        blank_ids += [(i, j)]
-            pos = blank_ids[randint(len(blank_ids))]
+        blank_row_idxs, blank_col_idxs = np.where(self.board == 0)
+        num_blanks = len(blank_row_idxs)
+        if num_blanks > 0:
+            selected_position = randint(num_blanks)
+            selected_row_idx = blank_row_idxs[selected_position]
+            selected_col_idx = blank_col_idxs[selected_position]
             tile_value = (2 if (rand() < 0.9) else 4)
-            self.board[pos] = 2
+            self.board[selected_row_idx, selected_col_idx] = tile_value
 
     def slide_up(self, testing=False):
         """slides the tiles upward, combining as necessary"""
