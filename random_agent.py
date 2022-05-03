@@ -37,10 +37,6 @@ try:
 
     for i_episode in range(num_episodes):
 
-        if i_episode % 10 == 0:
-            print("\tepisode {}".format(i_episode))
-            print("\t\t{}".format(np.mean(scores[-10:])))
-
         # start with a fresh environment
         observation = env.reset()
 
@@ -63,6 +59,7 @@ try:
             observations += [new_observation]
 
             if done:
+                ic(i_episode, t, episode_reward)
                 break
 
         scores += [env.score]
