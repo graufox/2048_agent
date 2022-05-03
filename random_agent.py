@@ -1,12 +1,12 @@
-import numpy as np
-from numpy.random import rand, randn, randint
+import argparse
+
 import matplotlib.pyplot as plt
+import numpy as np
+from numpy.random import randint
+from icecream import ic
 
 from game import Game
 from funcs import ema
-
-import argparse
-
 
 parser = argparse.ArgumentParser(
     description="Run an agent to play a game of 2048 with random moves."
