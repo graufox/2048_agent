@@ -97,7 +97,7 @@ try:
                 if not done:
                     targetQ[i, action[i]] = reward + gamma * maxQ1[i]
                 else:
-                    targetQ[i, :] = 0.
+                    targetQ[i, action[i]] = reward
 
             # backpropagate error between predicted and new Q values for state
             agent.train_step(
