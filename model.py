@@ -138,6 +138,64 @@ class ReinforcementAgent(tf.keras.models.Model):
     Deep Q-Network Reinforcement Learning Agent
 
     Deep Q-Network Reinforcement Learning Agent, implemented in TensorFlow 2.
+        The network is based on a deep residual convolution network. The output
+        are one of 4 actions, which are associated with up, right, down, and
+        left respectfully. The output of the network is the estimated Q-value
+        for the actions at the given state.
+    """
+
+    def __init__(
+        self,
+        conv_filters=128,
+        conv_dropout=0.2,
+        num_conv_stacks=3,
+        dense_units=1024,
+        output_units=4,
+        dense_dropout=0.5,
+        kernel_size=(3, 3),
+    ):
+        super().__init__()
+
+        self.base_model = ConvModel(
+            conv_filters=conv_filters,
+            conv_dropout=conv_dropout,
+            num_conv_stacks=num_conv_stacks,
+            dense_units=dense_units,
+            dense_dropout=dense_dropout,
+            kernel_size=kernel_size,
+            output_activation=None,
+        )
+
+    def call(self, inputs, training=False):
+
+        observation, available_moves = inputs
+
+        logQ = self.base_model(observation, training=training)
+        Q = tf.nn.softplus(logQ)
+        Q_masked = Q * available_moves
+        action = tf.argmax(Q_masked, axis=1)
+        return Q, action
+
+    # @tf.function
+    def train_step(self, x, reward, targetQ):
+        with tf.GradientTape() as tape:
+            Q, action = self(x, training=True)
+            loss_value = tf.reduce_mean((targetQ - Q) ** 2)
+            selected_Q = tf.gather(Q, action, axis=1)
+            # ic(Q, reward, action, selected_Q)
+            # loss_value -= tf.math.log(selected_Q + 1e-8) * reward
+            loss_value -= 1e6 * \
+                tf.reduce_mean(tf.math.reduce_variance(Q, axis=1))
+        grads = tape.gradient(loss_value, self.trainable_weights)
+        self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
+        return loss_value
+
+
+class RotationalReinforcementAgent(tf.keras.models.Model):
+    """
+    Deep Q-Network Reinforcement Learning Agent
+
+    Deep Q-Network Reinforcement Learning Agent, implemented in TensorFlow 2.
         The network is based on a rotationally-symmetrized deep residual convo-
         lution network. The output are one of 4 actions, which are associated
         with up, right, down, and left respectfully. The output of the network
