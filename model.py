@@ -202,7 +202,8 @@ class ReinforcementAgent(tf.keras.models.Model):
             selected_Q = tf.gather(Q, action, axis=1)
             # ic(Q, reward, action, selected_Q)
             # loss_value -= tf.math.log(selected_Q + 1e-8) * reward
-            loss_value -= 1e6 * tf.reduce_mean(tf.math.reduce_variance(Q, axis=1))
+            loss_value -= 1e6 * \
+                tf.reduce_mean(tf.math.reduce_variance(Q, axis=1))
         grads = tape.gradient(loss_value, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         return loss_value
