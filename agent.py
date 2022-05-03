@@ -109,7 +109,7 @@ try:
 
             # end game if finished
             if done:
-                ic(i_episode, env.board, env.score, env.board.max())
+                ic(i_episode, t, env.board, env.score, env.board.max())
                 break
 
         # log scores and rewards for game
