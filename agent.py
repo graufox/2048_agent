@@ -1,11 +1,8 @@
 import argparse
 
 import numpy as np
-import tensorflow as tf
 from icecream import ic
 from matplotlib import pyplot as plt
-from numpy.random import rand, randn, randint
-from scipy.special import softmax
 from tensorflow.keras import optimizers
 from tensorflow.python.framework import errors_impl
 
@@ -65,12 +62,13 @@ try:
 
             # # print the board out
             # if i_episode % 100 == 0:
-                # print(env.board)
-                # print("-" * 10)
-                # ic(env.board)
+            # print(env.board)
+            # print("-" * 10)
+            # ic(env.board)
 
             # choose best action, with noise
-            observation_input = np.array([observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
+            observation_input = np.array(
+                [observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
             moves = env.available_moves()
             moves_input = np.array(moves, dtype=np.float32)
             Qvals, action = agent((observation_input, moves_input))
@@ -98,7 +96,8 @@ try:
             new_moves = env.available_moves()
 
             # get Q-values for actions in new state
-            new_observation_input = np.array([new_observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
+            new_observation_input = np.array(
+                [new_observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
             new_moves_input = np.array(new_moves, dtype=np.float32)
             Q1, _ = agent((new_observation_input, new_moves_input))
 
