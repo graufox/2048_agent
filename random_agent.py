@@ -2,6 +2,7 @@ import argparse
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from numpy.random import randint
 from icecream import ic
 
@@ -76,8 +77,11 @@ rewards = np.array(rewards)
 print("\tAverage reward: {}".format(np.mean(rewards)))
 print("\tStandard Deviation of Reward: {}".format(np.std(rewards)))
 
+pd.Series(rewards).describe().to_csv('random_reward_statistics.csv')
+
 plt.hist(rewards, bins=np.arange(0, 4000, 100))
 plt.title("Histogram of Rewards")
+plt.savefig("random_scores_histogram.png")
 plt.show()
 
 # plt.plot(rewards)
