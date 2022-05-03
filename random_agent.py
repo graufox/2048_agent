@@ -19,7 +19,9 @@ num_episodes = args.num_episodes
 
 
 # define environment, in this case a game of 2048
-env = Game()
+BOARD_SIZE = 4
+BOARD_DEPTH = 16
+env = Game(board_size=BOARD_SIZE, board_depth=BOARD_DEPTH)
 
 # make model for Q
 # set hyperparameters
@@ -71,17 +73,15 @@ except KeyboardInterrupt:
 observations = np.stack(observations)
 scores = np.array(scores)
 rewards = np.array(rewards)
-print("\tAverage fitness: {}".format(np.mean(scores)))
-print("\tStandard Deviation of Fitness: {}".format(np.std(scores)))
+print("\tAverage reward: {}".format(np.mean(rewards)))
+print("\tStandard Deviation of Reward: {}".format(np.std(rewards)))
 
-plt.plot(scores)
-plt.plot(ema(scores, 0.1))
-plt.axis([0, num_episodes, 0, 10000])
-plt.title("Scores Over Time")
+plt.hist(rewards, bins=np.arange(0, 4000, 100))
+plt.title("Histogram of Rewards")
 plt.show()
 
-plt.plot(rewards)
-plt.plot(ema(rewards, 0.1))
-# plt.axis([0,num_episodes,-5000,5000])
-plt.title("Fitness Over Time")
-plt.show()
+# plt.plot(rewards)
+# plt.plot(ema(rewards, 0.1))
+# # plt.axis([0,num_episodes,-5000,5000])
+# plt.title("Fitness Over Time")
+# plt.show()
