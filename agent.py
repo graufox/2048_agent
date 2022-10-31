@@ -1,11 +1,8 @@
 import argparse
 
 import numpy as np
-import tensorflow as tf
 from icecream import ic
 from matplotlib import pyplot as plt
-from numpy.random import rand, randn, randint
-from scipy.special import softmax
 from tensorflow.keras import optimizers
 from tensorflow.python.framework import errors_impl
 
