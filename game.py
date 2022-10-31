@@ -1,6 +1,7 @@
 from funcs import board_2_array
 
 import numpy as np
+import pandas as pd
 from icecream import ic
 from numpy.random import rand, randint
 
@@ -48,10 +49,8 @@ class Game:
         self.board = np.zeros((board_size, board_size), dtype=np.int32)
         self.score = 0
         self.num_moves = 0
-
         self.action_space = [0, 1, 2, 3]
         self.last_board = self.board
-
         self.refresh_board()
 
     def refresh_board(self):
@@ -80,13 +79,11 @@ class Game:
         self.board = new_board
         self.num_moves += 1
         self.score += slide_reward
-        # add a tile at random
-        self.add_random_tile()
         return slide_reward
 
     def add_random_tile(self):
         """add new tile (usually 2) to a random blank spot"""
-        blank_row_idxs, blank_col_idxs = np.where(self.board == 0)
+        blank_row_idxs, blank_col_idxs = np.where(self.board <= 0)
         num_blanks = len(blank_row_idxs)
         selected_position = randint(num_blanks)
         selected_row_idx = blank_row_idxs[selected_position]
@@ -97,35 +94,37 @@ class Game:
     def slide_up(self):
         """slides the tiles upward, combining as necessary"""
         self.board = self.board[::-1]
-        available = self.slide_down()
+        slide_reward = self.slide_down()
         self.board = self.board[::-1]
-        return available
+        return slide_reward
 
     def slide_right(self):
         """slides the tiles to the right, combining as necessary"""
         self.board = np.rot90(self.board, -1)
-        available = self.slide_down()
+        slide_reward = self.slide_down()
         self.board = np.rot90(self.board, 1)
-        return available
+        return slide_reward
 
     def slide_left(self):
         """slides the tiles to the left, combining as necessary"""
         self.board = np.rot90(self.board, 1)
-        available = self.slide_up()
+        slide_reward = self.slide_up()
         self.board = np.rot90(self.board, -1)
-        return available
+        return slide_reward
 
     def available_moves(self):
         """returns all available moves at the current state"""
         def check_slide_up(board):
             for col_idx in range(self.board_size):
                 col = np.array(board[:, col_idx]).astype(int)
-                repeat_idxs = np.where(np.diff(col) == 0)[0]
+                repeat_idxs = pd.Series(col).duplicated().values
                 if (col[repeat_idxs] > 0).any():
+                    print(col[repeat_idxs])
                     return True
             return False
-
-        moves = [check_slide_up(np.rot90(self.board, k)) for k in range(4)]
+        moves = np.zeros((4,), dtype=bool)
+        for k in range(4):
+            moves[k] = check_slide_up(np.rot90(self.board, k))
         return np.array([moves], dtype=np.float32)
 
     def is_done(self):
@@ -135,7 +134,9 @@ class Game:
         if board_full:
             diffs_x = np.diff(self.board)
             diffs_y = np.diff(self.board.transpose())
-            fully_mixed = (np.abs(diffs_x) > 0).all() and (np.abs(diffs_y) > 0).all()
+            print(diffs_x, diffs_y)
+            fully_mixed = (np.abs(diffs_x) > 0).all() \
+                          and (np.abs(diffs_y) > 0).all()
             done = board_full and fully_mixed
         return done
 
@@ -152,17 +153,19 @@ class Game:
         old_score = self.score
         # decode action
         if action == 0:
-            self.slide_up()
+            slide_reward = self.slide_up()
         elif action == 1:
-            self.slide_right()
+            slide_reward = self.slide_right()
         elif action == 2:
-            self.slide_down()
+            slide_reward = self.slide_down()
         elif action == 3:
-            self.slide_left()
+            slide_reward = self.slide_left()
 
-        reward = self.score - old_score
-        if not self.is_done():
+        reward = np.log1p(slide_reward)
+        done = self.is_done()
+        if not done:
             self.last_board = self.board
+            self.add_random_tile()
 
         return (
             board_2_array(self.board, self.board_size, self.board_depth),
