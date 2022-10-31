@@ -64,10 +64,6 @@ try:
         episode_reward = 0
         for t in range(episode_length):
 
-            if i_episode % 10 == 0:
-                print(env.board)
-                print("-" * 10)
-
             # choose best action, with noise
             observation_input = \
                 np.array([observation], dtype=np.float32) \
@@ -75,6 +71,9 @@ try:
             moves = env.available_moves()
             moves_input = np.array(moves, dtype=np.float32)
             Qvals, action = agent((observation_input, moves_input))
+
+            # if i_episode % 5 == 0:
+            ic(i_episode, t, env.num_moves, env.board, moves, Qvals, action)
 
             # check for any NaN values encountered in output
             if np.isnan(Qvals.numpy()).any():
@@ -98,10 +97,10 @@ try:
             maxQ1 = np.max(Q1, axis=1)
             targetQ = Qvals.numpy()
             for i in range(len(Q1)):
-                if not done:
-                    targetQ[i, action[i]] = reward + gamma * maxQ1[i]
-                else:
+                if done:
                     targetQ[i, :] = 0.
+                else:
+                    targetQ[i, action[i]] = reward + gamma * maxQ1[i]
 
             # backpropagate error between predicted and new Q values
             agent.train_step(
@@ -123,16 +122,18 @@ try:
 
 except KeyboardInterrupt:
     print("aborted by user")
-except ValueError as e:
-    print(f"value error: {e}")
+    ic(i_episode, t, env.board, Qvals)
+# except ValueError as e:
+#     print(f"value error: {e}")
+#     ic(i_episode, t, env.board, Qvals)
 
 agent.save_weights(checkpoint_path)
 
 # display statistics
 scores = np.array(scores)
 rewards = np.array(rewards)
-print("\tAverage fitness: {}".format(np.mean(scores)))
-print("\tStandard Deviation of Fitness: {}".format(np.std(scores)))
+print("\tAverage fitness: {}".format(np.nanmean(scores)))
+print("\tStandard Deviation of Fitness: {}".format(np.nanstd(scores)))
 
 fig, ax = plt.subplots()
 ax.plot(scores)
