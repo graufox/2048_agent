@@ -87,7 +87,7 @@ class ConvModel(tf.keras.models.Model):
         conv_filters=64,
         conv_dropout=0.2,
         num_conv_stacks=3,
-        dense_units=1024,
+        dense_units=(1024,),
         dense_dropout=0.5,
         output_units=4,
         kernel_size=(3, 3),
@@ -113,11 +113,16 @@ class ConvModel(tf.keras.models.Model):
                     padding='same'
                 )
             )
+        # self.conv_pool = layers.GlobalMaxPooling2D()
         self.conv_flatten = layers.Flatten()
-        self.dense = DenseStack(
-            units=dense_units,
-            dropout_rate=dense_dropout,
-        )
+        self.dense_layers = []
+        for units in dense_units:
+            self.dense_layers.append(
+                DenseStack(
+                    units=units,
+                    dropout_rate=dense_dropout,
+                )
+            )
         self.output_layer = layers.Dense(
             units=output_units,
             activation=output_activation,
@@ -127,8 +132,10 @@ class ConvModel(tf.keras.models.Model):
         x = self.preproc(inputs)
         for conv in self.convs:
             x = x + conv(x, training=training)
+        # x = self.conv_pool(x)
         x = self.conv_flatten(x)
-        x = self.dense(x, training=training)
+        for layer in self.dense_layers:
+            x = layer(x, training=training)
         output = self.output_layer(x)
         return output
 
@@ -149,7 +156,7 @@ class ReinforcementAgent(tf.keras.models.Model):
         conv_filters=128,
         conv_dropout=0.2,
         num_conv_stacks=3,
-        dense_units=1024,
+        dense_units=(1024,),
         output_units=4,
         dense_dropout=0.5,
         kernel_size=(3, 3),
@@ -180,13 +187,12 @@ class ReinforcementAgent(tf.keras.models.Model):
     def train_step(self, x, reward, targetQ):
         with tf.GradientTape() as tape:
             Q, action = self(x, training=True)
-            loss_value = tf.reduce_mean((targetQ - Q) ** 2)
+            loss_value = tf.keras.losses.Huber()(targetQ, Q)
             selected_Q = tf.gather(Q, action, axis=1)
-            # ic(Q, reward, action, selected_Q)
-            # loss_value -= tf.math.log(selected_Q + 1e-8) * reward
-            # loss_value -= 1e6 * \
-            #     tf.reduce_mean(tf.math.reduce_variance(Q, axis=1))
         grads = tape.gradient(loss_value, self.trainable_weights)
+        grads = [
+            None if gradient is None else tf.clip_by_value(gradient, -1.0, 1.0)
+            for gradient in grads]
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         return loss_value
 
@@ -224,6 +230,7 @@ class RotationalReinforcementAgent(tf.keras.models.Model):
             output_activation=None,
         )
 
+    @tf.function
     def call(self, inputs, training=False):
 
         observation, available_moves = inputs
@@ -252,16 +259,15 @@ class RotationalReinforcementAgent(tf.keras.models.Model):
         action = tf.argmax(Q_masked, axis=1)
         return Q, action
 
-    # @tf.function
+    @tf.function
     def train_step(self, x, reward, targetQ):
         with tf.GradientTape() as tape:
             Q, action = self(x, training=True)
-            loss_value = tf.reduce_mean((targetQ - Q) ** 2)
+            loss_value = tf.keras.losses.Huber()(targetQ, Q)
             selected_Q = tf.gather(Q, action, axis=1)
-            # ic(Q, reward, action, selected_Q)
-            # loss_value -= tf.math.log(selected_Q + 1e-8) * reward
-            loss_value -= 1e6 * \
-                tf.reduce_mean(tf.math.reduce_variance(Q, axis=1))
         grads = tape.gradient(loss_value, self.trainable_weights)
+        grads = [
+            None if gradient is None else tf.clip_by_value(gradient, -1.0, 1.0)
+            for gradient in grads]
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         return loss_value
