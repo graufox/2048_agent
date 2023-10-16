@@ -33,6 +33,7 @@ episode_length = 2**20  # max number of moves per game
 scores = []
 rewards = []
 observations = []
+lengths = []
 
 # iterate through a number of episodes
 
@@ -47,10 +48,6 @@ try:
         episode_reward = 0
         for t in range(episode_length):
 
-            # if i_episode % 10 == 0:
-            #     print(env.board)
-            #     print('-'*10)
-
             # choose random action
             action = [randint(4)]
 
@@ -62,30 +59,25 @@ try:
             observations += [new_observation]
 
             if done:
-                ic(i_episode, t, episode_reward)
                 break
 
         scores += [env.score]
         rewards += [episode_reward]
+        lengths += [t + 1]
 
 except KeyboardInterrupt:
     print("simulation aborted")
 
-observations = np.stack(observations)
-scores = np.array(scores)
-rewards = np.array(rewards)
-print("\tAverage reward: {}".format(np.mean(rewards)))
-print("\tStandard Deviation of Reward: {}".format(np.std(rewards)))
+performance_df = pd.DataFrame(
+    {'score': scores, 'reward': rewards, 'length': lengths}
+)
 
-pd.Series(rewards).describe().to_csv('random_reward_statistics.csv')
+print(performance_df.describe())
+
+performance_df.describe().to_csv('random_reward_statistics.csv')
+performance_df.to_csv('random_reward_results.csv')
 
 plt.hist(rewards, bins=np.arange(0, 4000, 100))
 plt.title("Histogram of Rewards")
 plt.savefig("random_scores_histogram.png")
 plt.show()
-
-# plt.plot(rewards)
-# plt.plot(ema(rewards, 0.1))
-# # plt.axis([0,num_episodes,-5000,5000])
-# plt.title("Fitness Over Time")
-# plt.show()
