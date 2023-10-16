@@ -6,34 +6,58 @@ from icecream import ic
 from numpy.random import rand, randint
 
 
-def slide_column_down(column, return_score=True):
+def slide_column_down(column, board_size=4, return_score=True):
     """
     Slide a column downwards, assuming index 0 is at the top.
     """
 
-    squished_column = [value for value in column if value > 0]
-
-    new_column = []
+    squished_column = column[column > 0]
+    new_column = np.zeros(board_size)
     score = 0
-    idx = len(squished_column) - 1
-    while idx >= 0:
-        value = squished_column[idx]
-        if idx >= 1:
-            value_above = squished_column[idx - 1]
-            if value == value_above:
-                new_column.append(2 * value)
-                score += 2 * value
-                idx -= 1
+    if len(squished_column) > 1:
+        squished_idx = len(squished_column) - 1
+        new_col_idx = board_size - 1
+        while squished_idx >= 0:
+            value = squished_column[squished_idx]
+            if squished_idx - 1 >= 0:
+                value_above = squished_column[squished_idx - 1]
+                new_column[new_col_idx] = value
+                if value == value_above:
+                    new_column[new_col_idx] = 2 * value
+                    score += 2 * value
+                    squished_idx -= 1
+                squished_idx -= 1
+                new_col_idx -= 1
             else:
-                new_column.append(value)
-        else:
-            new_column.append(value)
-        idx -= 1
-    new_column = [0] * (len(column) - len(new_column)) + new_column[::-1]
+                new_column[new_col_idx] = value
+                squished_idx -= 1
     if return_score:
         return new_column, score
-    else:
-        return new_column
+    return new_column
+
+
+assert np.equal(
+    slide_column_down(np.array([2, 2, 2, 2]), 4, False), np.array([0, 0, 4, 4])
+).all()
+
+assert np.equal(
+    slide_column_down(np.array([2, 0, 2, 2]), 4, False), np.array([0, 0, 2, 4])
+).all()
+
+assert np.equal(
+    slide_column_down(np.array([2, 2, 4, 0]), 4, False), np.array([0, 0, 4, 4])
+).all()
+
+assert np.equal(
+    slide_column_down(np.array([2, 16, 4, 0]), 4, False), np.array([0, 2, 16, 4])
+).all()
+
+assert np.equal(
+    slide_column_down(np.array([0, 0, 0, 0]), 4, False), np.array([0, 0, 0, 0])
+).all()
+assert np.equal(
+    slide_column_down(np.array([2, 4, 8, 16]), 4, False), np.array([2, 4, 8, 16])
+).all()
 
 
 class Game:
@@ -70,7 +94,9 @@ class Game:
         slide_reward = 0
         for j in range(self.board_size):
             col = new_board[:, j]
-            new_col, reward = slide_column_down(col, return_score=True)
+            new_col, reward = slide_column_down(
+                col, board_size=self.board_size, return_score=True
+            )
             # update the column
             new_board[:, j] = new_col
             slide_reward += reward
@@ -118,9 +144,8 @@ class Game:
         def check_slide_up(board):
             for col_idx in range(self.board_size):
                 col = np.array(board[:, col_idx]).astype(int)
-                repeat_idxs = pd.Series(col).duplicated().values
-                if (col[repeat_idxs] > 0).any():
-                    print(col[repeat_idxs])
+                col = col[col > 0]
+                if (np.abs(np.diff(col)) > 0).any() or len(col) <= 0:
                     return True
             return False
 
@@ -136,7 +161,7 @@ class Game:
         if board_full:
             diffs_x = np.diff(self.board)
             diffs_y = np.diff(self.board.transpose())
-            print(diffs_x, diffs_y)
+            # print(diffs_x, diffs_y)
             fully_mixed = (np.abs(diffs_x) > 0).all() and (np.abs(diffs_y) > 0).all()
             done = board_full and fully_mixed
         return done
