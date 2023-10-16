@@ -107,12 +107,6 @@ def train_agent(
                     else:
                         targetQ[i, action[i]] = reward
 
-                # backpropagate error between predicted and new Q values for state
-                agent.train_step((observation_input, moves_input), reward, targetQ)
-
-                # log observations
-                observation = new_observation.copy()
-
                 # end game if finished
                 if done:
                     ic(
@@ -124,6 +118,16 @@ def train_agent(
                         env.board.max(),
                     )
                     break
+                # check for any NaN values encountered in output
+                elif np.isnan(Qvals.numpy()).any():
+                    ic(Qvals)
+                    raise ValueError
+
+                # backpropagate error between predicted and new Q values for state
+                agent.train_step((observation_input, moves_input), reward, targetQ)
+
+                # log observations
+                observation = new_observation.copy()
 
             # log scores and rewards for game
             scores += [env.score]
@@ -156,12 +160,6 @@ def compute_performance(scores, rewards):
     ax.set_xlabel("Game Number")
     ax.set_ylabel("Game Reward")
     ax.set_title("Reward Over Time")
-
-    ax_hist.hist(scores)
-    ax_hist.grid()
-    ax_hist.set_xlabel("reward")
-    ax_hist.set_ylabel("frequency")
-    ax_hist.set_title("Histogram of Rewards")
 
     fig.set_size_inches(8, 4)
     plt.savefig("score_over_time.png")

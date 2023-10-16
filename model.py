@@ -94,15 +94,18 @@ class ConvModel(tf.keras.models.Model):
         output_activation=None,
         board_size=4,
         board_depth=16,
+        use_preprocessing=True,
     ):
         super().__init__()
 
-        self.preproc = Conv2DStack(
-            filters=conv_filters,
-            kernel_size=(1, 1),
-            dropout_rate=0.,
-            padding='same'
-        )
+        self.preproc = None
+        if use_preprocessing:
+            self.preproc = Conv2DStack(
+                filters=conv_filters,
+                kernel_size=(1, 1),
+                dropout_rate=0.0,
+                padding="same",
+            )
         self.convs = []
         for i in range(num_conv_stacks):
             self.convs.append(
@@ -110,7 +113,7 @@ class ConvModel(tf.keras.models.Model):
                     filters=conv_filters,
                     kernel_size=(3, 3),
                     dropout_rate=conv_dropout,
-                    padding='same'
+                    padding="same",
                 )
             )
         # self.conv_pool = layers.GlobalMaxPooling2D()
@@ -128,8 +131,9 @@ class ConvModel(tf.keras.models.Model):
             activation=output_activation,
         )
 
-    def call(self, inputs, training=False):
-        x = self.preproc(inputs)
+    def call(self, x, training=False):
+        if self.preproc is not None:
+            x = self.preproc(x)
         for conv in self.convs:
             x = x + conv(x, training=training)
         # x = self.conv_pool(x)
@@ -192,7 +196,8 @@ class ReinforcementAgent(tf.keras.models.Model):
         grads = tape.gradient(loss_value, self.trainable_weights)
         grads = [
             None if gradient is None else tf.clip_by_value(gradient, -1.0, 1.0)
-            for gradient in grads]
+            for gradient in grads
+        ]
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         return loss_value
 
@@ -217,6 +222,7 @@ class RotationalReinforcementAgent(tf.keras.models.Model):
         output_units=4,
         dense_dropout=0.5,
         kernel_size=(3, 3),
+        use_preprocessing=True,
     ):
         super().__init__()
 
@@ -228,11 +234,11 @@ class RotationalReinforcementAgent(tf.keras.models.Model):
             dense_dropout=dense_dropout,
             kernel_size=kernel_size,
             output_activation=None,
+            use_preprocessing=use_preprocessing,
         )
 
     @tf.function
     def call(self, inputs, training=False):
-
         observation, available_moves = inputs
 
         obs_0 = observation
@@ -254,7 +260,7 @@ class RotationalReinforcementAgent(tf.keras.models.Model):
             ],
             axis=0,
         )
-        Q = tf.nn.softplus(logQ)
+        Q = tf.nn.leaky_relu(logQ, alpha=0.1)
         Q_masked = Q * available_moves
         action = tf.argmax(Q_masked, axis=1)
         return Q, action
@@ -268,6 +274,7 @@ class RotationalReinforcementAgent(tf.keras.models.Model):
         grads = tape.gradient(loss_value, self.trainable_weights)
         grads = [
             None if gradient is None else tf.clip_by_value(gradient, -1.0, 1.0)
-            for gradient in grads]
+            for gradient in grads
+        ]
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         return loss_value
