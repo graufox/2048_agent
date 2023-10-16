@@ -13,7 +13,7 @@ from model import ReinforcementAgent, RotationalReinforcementAgent
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--new", action="store_true", help="make a new model")
-args = parser.parse_args()
+args, unknown = parser.parse_known_args()
 
 BOARD_SIZE = 4
 BOARD_DEPTH = 16
@@ -26,7 +26,11 @@ def create_environment():
     return Game(board_size=BOARD_SIZE, board_depth=BOARD_DEPTH)
 
 
-def create_agent(learning_rate=2e-3):
+def create_agent(
+    learning_rate=2e-3,
+    new_agent=args.new,
+    checkpoint_path="training/model_checkpoint.ckpt",
+):
     """Create the reinforcement agent."""
     # make model for Q
     agent = ReinforcementAgent(
@@ -38,30 +42,30 @@ def create_agent(learning_rate=2e-3):
             32,
         ),
         dense_dropout=0.2,
+        board_depth=BOARD_DEPTH,
+        board_size=BOARD_SIZE,
     )
     agent.compile(optimizer=optimizers.Adam(learning_rate))
-    return agent
-
-
-def train_agent(
-    agent,
-    env,
-    gamma=0.97,
-    checkpoint_path="training/model_checkpoint.ckpt",
-    new_agent=args.new,
-):
-    """Train the agent on the game."""
-
-    # set up lists for keeping track of progress
-    scores = []
-    rewards = []
-
     if not new_agent:
         try:
             agent.load_weights(checkpoint_path)
         except errors_impl.NotFoundError:
             print("weights not found, initializing new model")
             agent.save_weights(checkpoint_path)
+    return agent
+
+
+def train_agent(
+    agent,
+    env,
+    gamma=0.90,
+    checkpoint_path="training/model_checkpoint.ckpt",
+):
+    """Train the agent on the game."""
+
+    # set up lists for keeping track of progress
+    scores = []
+    rewards = []
 
     try:
         # iterate through a number of episodes
@@ -86,7 +90,7 @@ def train_agent(
                     raise ValueError
 
                 # make a step in the environment
-                new_observation, reward, done, info = env.step(action[0])
+                new_observation, reward, done, _ = env.step(action[0])
                 episode_reward += reward
 
                 new_moves = env.available_moves()
@@ -107,6 +111,9 @@ def train_agent(
                     else:
                         targetQ[i, action[i]] = reward
 
+                # backpropagate error between predicted and new Q values for state
+                agent.train_step((observation_input, moves_input), targetQ)
+
                 # end game if finished
                 if done:
                     ic(
@@ -118,13 +125,6 @@ def train_agent(
                         env.board.max(),
                     )
                     break
-                # check for any NaN values encountered in output
-                elif np.isnan(Qvals.numpy()).any():
-                    ic(Qvals)
-                    raise ValueError
-
-                # backpropagate error between predicted and new Q values for state
-                agent.train_step((observation_input, moves_input), reward, targetQ)
 
                 # log observations
                 observation = new_observation.copy()

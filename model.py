@@ -164,6 +164,8 @@ class ReinforcementAgent(tf.keras.models.Model):
         output_units=4,
         dense_dropout=0.5,
         kernel_size=(3, 3),
+        board_depth=16,
+        board_size=4,
     ):
         super().__init__()
 
@@ -174,13 +176,14 @@ class ReinforcementAgent(tf.keras.models.Model):
             dense_units=dense_units,
             dense_dropout=dense_dropout,
             kernel_size=kernel_size,
+            board_depth=board_depth,
+            board_size=board_size,
             output_activation=None,
         )
 
     @tf.function
     def call(self, inputs, training=False):
         observation, available_moves = inputs
-
         logQ = self.base_model(observation, training=training)
         Q = tf.nn.softplus(logQ)
         Q_masked = Q * available_moves
@@ -188,17 +191,17 @@ class ReinforcementAgent(tf.keras.models.Model):
         return Q, action
 
     @tf.function
-    def train_step(self, x, reward, targetQ):
+    def train_step(self, x, targetQ):
         with tf.GradientTape() as tape:
-            Q, action = self(x, training=True)
+            Q, _ = self(x, training=True)
             loss_value = tf.keras.losses.Huber()(targetQ, Q)
-            selected_Q = tf.gather(Q, action, axis=1)
-        grads = tape.gradient(loss_value, self.trainable_weights)
-        grads = [
-            None if gradient is None else tf.clip_by_value(gradient, -1.0, 1.0)
-            for gradient in grads
-        ]
-        self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
+            # selected_Q = tf.gather(Q, action, axis=1)
+            grads = tape.gradient(loss_value, self.trainable_weights)
+            grads = [
+                None if gradient is None else tf.clip_by_value(gradient, -1.0, 1.0)
+                for gradient in grads
+            ]
+            self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         return loss_value
 
 

@@ -46,7 +46,7 @@ class Game:
     def __init__(self, board_size=4, board_depth=17):
         self.board_size = board_size
         self.board_depth = board_depth
-        self.board = np.zeros((board_size, board_size), dtype=np.int32)
+        self.board = np.zeros((board_size, board_size, board_size), dtype=np.int32)
         self.score = 0
         self.num_moves = 0
         self.action_space = [0, 1, 2, 3]
@@ -88,7 +88,7 @@ class Game:
         selected_position = randint(num_blanks)
         selected_row_idx = blank_row_idxs[selected_position]
         selected_col_idx = blank_col_idxs[selected_position]
-        tile_value = (2 if (rand() < 0.9) else 4)
+        tile_value = 2 if (rand() < 0.9) else 4
         self.board[selected_row_idx, selected_col_idx] = tile_value
 
     def slide_up(self):
@@ -114,6 +114,7 @@ class Game:
 
     def available_moves(self):
         """returns all available moves at the current state"""
+
         def check_slide_up(board):
             for col_idx in range(self.board_size):
                 col = np.array(board[:, col_idx]).astype(int)
@@ -122,6 +123,7 @@ class Game:
                     print(col[repeat_idxs])
                     return True
             return False
+
         moves = np.zeros((4,), dtype=bool)
         for k in range(4):
             moves[k] = check_slide_up(np.rot90(self.board, k))
@@ -135,8 +137,7 @@ class Game:
             diffs_x = np.diff(self.board)
             diffs_y = np.diff(self.board.transpose())
             print(diffs_x, diffs_y)
-            fully_mixed = (np.abs(diffs_x) > 0).all() \
-                          and (np.abs(diffs_y) > 0).all()
+            fully_mixed = (np.abs(diffs_x) > 0).all() and (np.abs(diffs_y) > 0).all()
             done = board_full and fully_mixed
         return done
 
@@ -145,7 +146,7 @@ class Game:
         self.refresh_board()
         self.score = 0
         self.num_moves = 0
-        return board_2_array(self.board, self.board_size)
+        return board_2_array(self.board, self.board_size, self.board_depth)
 
     def step(self, action):
         """for openai gym"""
@@ -176,7 +177,6 @@ class Game:
 
 
 if __name__ == "__main__":
-
     g = Game(board_size=4)
     g.board = np.array(
         [[0, 0, 0, 0], [0, 2, 0, 0], [0, 2, 0, 0], [0, 2, 0, 0]], dtype=np.int32

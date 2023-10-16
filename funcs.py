@@ -26,8 +26,8 @@ def board_2_array(board, board_size=4, board_depth=17):
     """
     assert len(board.shape) == 2
     channels = []
-    channels += [np.zeros(shape=(board_size, board_size)) == board]
-    for i in range(1, board_depth):
+    # channels += [np.zeros(shape=(board_size, board_size)) == board]
+    for i in range(1, board_depth + 1):
         channels += [np.ones(shape=(board_size, board_size)) * (2**i) == board]
     return np.stack(channels, axis=-1)
 
