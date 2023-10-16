@@ -1,151 +1,182 @@
 import argparse
 
 import numpy as np
+import pandas as pd
 from icecream import ic
 from matplotlib import pyplot as plt
 from tensorflow.keras import optimizers
 from tensorflow.python.framework import errors_impl
 
-from funcs import ema
+from funcs import ema, score_quantile
 from game import Game
-from model import ReinforcementAgent
+from model import ReinforcementAgent, RotationalReinforcementAgent
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--new', action="store_true", help='make a new model')
+parser.add_argument("--new", action="store_true", help="make a new model")
 args = parser.parse_args()
 
-# define environment, in this case a game of 2048
 BOARD_SIZE = 4
 BOARD_DEPTH = 16
-env = Game(board_size=BOARD_SIZE, board_depth=BOARD_DEPTH)
+NUM_EPISODES = 10000  # number of "games" to train the agent with
+EPISODE_LENGTH = 2**20  # max number of moves per game
 
-# make model for Q
-# set hyperparameters
-num_episodes = 10000  # number of "games" to train the agent with
-episode_length = 2**20  # max number of moves per game
 
-learning_rate = 1e-3
-gamma = 0.997  # the discount rate of future reward
+def create_environment():
+    """Create the environment, i.e. the 2048 game."""
+    return Game(board_size=BOARD_SIZE, board_depth=BOARD_DEPTH)
 
-agent = ReinforcementAgent(
-    conv_filters=64,
-    conv_dropout=0.2,
-    dense_units=1024,
-    dense_dropout=0.2
-)
-agent.compile(optimizer=optimizers.Adamax(learning_rate))
 
-print("Training DQN, please wait...")
+def create_agent(learning_rate=2e-3):
+    """Create the reinforcement agent."""
+    # make model for Q
+    agent = ReinforcementAgent(
+        conv_filters=32,
+        conv_dropout=0.2,
+        num_conv_stacks=2,
+        dense_units=(
+            128,
+            32,
+        ),
+        dense_dropout=0.2,
+    )
+    agent.compile(optimizer=optimizers.Adam(learning_rate))
+    return agent
 
-# set up lists for keeping track of progress
-scores = []
-rewards = []
 
-checkpoint_path = "training/model_checkpoint.ckpt"
-if not args.new:
+def train_agent(
+    agent,
+    env,
+    gamma=0.97,
+    checkpoint_path="training/model_checkpoint.ckpt",
+    new_agent=args.new,
+):
+    """Train the agent on the game."""
+
+    # set up lists for keeping track of progress
+    scores = []
+    rewards = []
+
+    if not new_agent:
+        try:
+            agent.load_weights(checkpoint_path)
+        except errors_impl.NotFoundError:
+            print("weights not found, initializing new model")
+            agent.save_weights(checkpoint_path)
+
     try:
-        agent.load_weights(checkpoint_path)
-    except errors_impl.NotFoundError:
-        print('weights not found, initializing new model')
-        agent.save_weights(checkpoint_path)
+        # iterate through a number of episodes
+        for i_episode in range(NUM_EPISODES):
+            # start with a fresh environment
+            observation = env.reset()
 
-try:
-    # iterate through a number of episodes
-    for i_episode in range(num_episodes):
+            # run the simulation
+            episode_reward = 0
+            for t in range(EPISODE_LENGTH):
+                # choose best action, with noise
+                observation_input = np.array([observation], dtype=np.float32) / np.sqrt(
+                    BOARD_DEPTH
+                )
+                moves = env.available_moves()
+                moves_input = np.array(moves, dtype=np.float32)
+                Qvals, action = agent((observation_input, moves_input))
 
-        # start with a fresh environment
-        observation = env.reset()
+                # check for any NaN values encountered in output
+                if np.isnan(Qvals.numpy()).any():
+                    ic(Qvals)
+                    raise ValueError
 
-        # run the simulation
-        episode_reward = 0
-        for t in range(episode_length):
+                # make a step in the environment
+                new_observation, reward, done, info = env.step(action[0])
+                episode_reward += reward
 
-            # # print the board out
-            # if i_episode % 100 == 0:
-            # print(env.board)
-            # print("-" * 10)
-            # ic(env.board)
+                new_moves = env.available_moves()
 
-            # choose best action, with noise
-            observation_input = np.array(
-                [observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
-            moves = env.available_moves()
-            moves_input = np.array(moves, dtype=np.float32)
-            Qvals, action = agent((observation_input, moves_input))
+                # get Q-values for actions in new state
+                new_observation_input = np.array(
+                    [new_observation], dtype=np.float32
+                ) / np.sqrt(BOARD_DEPTH)
+                new_moves_input = np.array(new_moves, dtype=np.float32)
+                Q1, _ = agent((new_observation_input, new_moves_input))
 
-            # check for any NaN values encountered in output
-            if np.isnan(Qvals.numpy()).any():
-                ic(Qvals)
-                raise ValueError
+                # compute the target Q-values
+                maxQ1 = np.max(Q1, axis=1)
+                targetQ = Qvals.numpy()
+                for i in range(len(Q1)):
+                    if not done:
+                        targetQ[i, action[i]] = reward + gamma * maxQ1[i]
+                    else:
+                        targetQ[i, action[i]] = reward
 
-            # make a step in the environment
-            new_observation, reward, done, info = env.step(action[0])
-            episode_reward += reward
+                # backpropagate error between predicted and new Q values for state
+                agent.train_step((observation_input, moves_input), reward, targetQ)
 
-            new_moves = env.available_moves()
+                # log observations
+                observation = new_observation.copy()
 
-            # get Q-values for actions in new state
-            new_observation_input = np.array(
-                [new_observation], dtype=np.float32) / np.sqrt(BOARD_DEPTH)
-            new_moves_input = np.array(new_moves, dtype=np.float32)
-            Q1, _ = agent((new_observation_input, new_moves_input))
+                # end game if finished
+                if done:
+                    ic(
+                        i_episode,
+                        t,
+                        env.board,
+                        env.score,
+                        score_quantile(episode_reward),
+                        env.board.max(),
+                    )
+                    break
 
-            # compute the target Q-values
-            maxQ1 = np.max(Q1, axis=1)
-            targetQ = Qvals.numpy()
-            for i in range(len(Q1)):
-                if not done:
-                    targetQ[i, action[i]] = reward + gamma * maxQ1[i]
-                else:
-                    targetQ[i, action[i]] = reward
+            # log scores and rewards for game
+            scores += [env.score]
+            rewards += [episode_reward]
+            agent.save_weights(checkpoint_path)
 
-            # backpropagate error between predicted and new Q values for state
-            agent.train_step(
-                (observation_input, moves_input), reward, targetQ
-            )
+    except KeyboardInterrupt:
+        print("aborted by user")
+    except ValueError as e:
+        print(f"value error: {e}")
 
-            # log observations
-            observation = new_observation.copy()
+    agent.save_weights(checkpoint_path)
+    return scores, rewards
 
-            # end game if finished
-            if done:
-                ic(i_episode, t, env.board, env.score, env.board.max())
-                break
 
-        # log scores and rewards for game
-        scores += [env.score]
-        rewards += [episode_reward]
+def compute_performance(scores, rewards):
+    """Calculate performance of the agent from training scores."""
 
-        agent.save_weights(checkpoint_path)
+    scores = np.array(scores)
+    rewards = np.array(rewards)
+    print("\tAverage fitness: {}".format(np.mean(scores)))
+    print("\tStandard Deviation of Fitness: {}".format(np.std(scores)))
+    print("\tScore Quantile: {}".format(score_quantile(np.mean(rewards))))
 
-except KeyboardInterrupt:
-    print("aborted by user")
-except ValueError as e:
-    print(f"value error: {e}")
+    fig, (ax, ax_hist) = plt.subplots(1, 2)
 
-agent.save_weights(checkpoint_path)
+    ax.plot(rewards)
+    ax.plot(ema(rewards, 0.1))
+    ax.grid()
+    ax.set_xlabel("Game Number")
+    ax.set_ylabel("Game Reward")
+    ax.set_title("Reward Over Time")
 
-# display statistics
-scores = np.array(scores)
-rewards = np.array(rewards)
-print("\tAverage fitness: {}".format(np.mean(scores)))
-print("\tStandard Deviation of Fitness: {}".format(np.std(scores)))
+    ax_hist.hist(scores)
+    ax_hist.grid()
+    ax_hist.set_xlabel("reward")
+    ax_hist.set_ylabel("frequency")
+    ax_hist.set_title("Histogram of Rewards")
 
-fig, (ax, ax_hist) = plt.subplots(1, 2)
+    fig.set_size_inches(8, 4)
+    plt.savefig("score_over_time.png")
+    plt.show()
 
-ax.plot(rewards)
-ax.plot(ema(rewards, 0.1))
-ax.grid()
-ax.set_xlabel("Game Number")
-ax.set_ylabel("Game Reward")
-ax.set_title("Reward Over Time")
 
-ax_hist.hist(scores)
-ax_hist.grid()
-ax_hist.set_xlabel("reward")
-ax_hist.set_ylabel("frequency")
-ax_hist.set_title("Histogram of Rewards")
+def main():
+    """Run model and save, outputting figures of reward over time."""
 
-fig.set_size_inches(8, 4)
-plt.savefig("score_over_time.png")
-plt.show()
+    # define environment, in this case a game of 2048
+    env = create_environment()
+    agent = create_agent()
+    scores, rewards = train_agent(agent, env)
+    compute_performance(scores, rewards)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 
 def ema(data, a):
@@ -43,3 +44,11 @@ def sample_action(Qvals, moves):
         p = p > 0
     p = p / p.sum()
     return [np.random.choice([0, 1, 2, 3], p=p)]
+
+
+performance_df = pd.read_csv("random_reward_results.csv")
+
+
+def score_quantile(reward):
+    """Calculate the score quantile relative to random performance."""
+    return performance_df["reward"].lt(reward).mean()
