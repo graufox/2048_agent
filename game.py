@@ -139,7 +139,7 @@ class Game:
     def slide_left(self):
         """slides the tiles to the left, combining as necessary"""
         self.board = np.rot90(self.board, 1)
-        slide_reward = self.slide_up()
+        slide_reward = self.slide_down()
         self.board = np.rot90(self.board, -1)
         return slide_reward
 
@@ -147,10 +147,10 @@ class Game:
         """returns all available moves at the current state"""
 
         def check_slide_up(board):
-            for col_idx in range(self.board_size):
+            for col_idx in range(4):
                 col = np.array(board[:, col_idx]).astype(int)
                 col = col[col > 0]
-                if (np.abs(np.diff(col)) > 0).any() or len(col) <= 0:
+                if (np.abs(np.diff(col)) <= 0).any() or len(col) < 4:
                     return True
             return False
 
