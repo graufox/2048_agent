@@ -14,7 +14,7 @@ def slide_column_down(column, board_size=4, return_score=True):
     squished_column = column[column > 0]
     new_column = np.zeros(board_size)
     score = 0
-    if len(squished_column) > 1:
+    if len(squished_column) >= 1:
         squished_idx = len(squished_column) - 1
         new_col_idx = board_size - 1
         while squished_idx >= 0:
