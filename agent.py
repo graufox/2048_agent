@@ -37,7 +37,7 @@ def create_environment():
 
 
 def create_agent(
-    learning_rate=2e-3,
+    learning_rate=5e-3,
     new_agent=args.new,
     checkpoint_path="training/model_checkpoint.ckpt",
 ):
@@ -45,13 +45,10 @@ def create_agent(
     # make model for Q
     agent = ReinforcementAgent(
         conv_filters=32,
-        conv_dropout=0.2,
-        num_conv_stacks=2,
-        dense_units=(
-            128,
-            32,
-        ),
-        dense_dropout=0.2,
+        conv_dropout=0.1,
+        num_conv_stacks=0,
+        dense_units=(32,),
+        dense_dropout=0.1,
         board_depth=BOARD_DEPTH,
         board_size=BOARD_SIZE,
     )
@@ -68,7 +65,7 @@ def create_agent(
 def train_agent(
     agent,
     env,
-    gamma=0.90,
+    gamma=0.97,
     checkpoint_path="training/model_checkpoint.ckpt",
 ):
     """Train the agent on the game."""
