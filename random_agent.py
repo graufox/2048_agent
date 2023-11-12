@@ -66,14 +66,12 @@ try:
 except KeyboardInterrupt:
     print("simulation aborted")
 
-performance_df = pd.DataFrame(
-    {'score': scores, 'reward': rewards, 'length': lengths}
-)
+performance_df = pd.DataFrame({"score": scores, "reward": rewards, "length": lengths})
 
 print(performance_df.describe())
 
-performance_df.describe().to_csv('random_reward_statistics.csv')
-performance_df.to_csv('random_reward_results.csv')
+performance_df.describe().to_csv("random_reward_statistics.csv")
+performance_df.to_csv("random_reward_results.csv")
 
 plt.hist(rewards, bins=np.arange(0, 4000, 100))
 plt.title("Histogram of Rewards")
