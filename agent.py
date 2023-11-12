@@ -132,7 +132,8 @@ def train_agent(
                         targetQ[i, action[i]] = reward
 
                 # backpropagate error between predicted and new Q values for state
-                agent.train_step((observation_input, moves_input), targetQ)
+                if TRAIN:
+                    agent.train_step((observation_input, moves_input), targetQ)
 
                 # end game if finished
                 if done:
