@@ -82,7 +82,20 @@ def train_agent(
                 )
                 moves = env.available_moves()
                 moves_input = np.array(moves, dtype=np.float32)
-                Qvals, action = agent((observation_input, moves_input))
+                Qvals, _ = agent((observation_input, moves_input))
+                action = [np.argmax(Qvals[0].numpy() * moves_input + 1e-3)]
+                if (Qvals[0].numpy()[moves_input[0].astype(bool)]).std() < 0.1:
+                    # print("sampling action instead of deterministic")
+                    action = [
+                        np.random.choice(
+                            np.arange(4),
+                            p=((Qvals[0].numpy() + 1e-3) * moves_input[0])
+                            / ((Qvals[0].numpy() + 1e-3) * moves_input[0]).sum(),
+                        )
+                    ]
+                # ic(Qvals, moves_input, Qvals * moves_input)
+                assert moves[0][action] > 0
+                # ic(action)
 
                 # check for any NaN values encountered in output
                 if np.isnan(Qvals.numpy()).any():
