@@ -21,13 +21,13 @@ parser.add_argument(
 parser.add_argument(
     "--episode_length", type=int, default=10000, help="Max length of an episode."
 )
-args = parser.parse_args()
+args, unknown = parser.parse_known_args()
 num_episodes = args.num_episodes
 
 BOARD_SIZE = 4
 BOARD_DEPTH = 16
 NUM_EPISODES = args.num_episodes  # number of "games" to train the agent with
-EPISODE_LENGTH = 2**20  # max number of moves per game
+EPISODE_LENGTH = args.episode_length  # max number of moves per game
 TRAIN = args.test
 DEBUG = args.debug
 
