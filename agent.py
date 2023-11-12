@@ -14,7 +14,7 @@ from model import ReinforcementAgent, RotationalReinforcementAgent
 parser = argparse.ArgumentParser()
 parser.add_argument("--new", action="store_true", help="Make a new model")
 parser.add_argument("--test", action="store_true", help="Test and not train the model")
-args, unknown = parser.parse_known_args()
+parser.add_argument("--debug", action="store_true", help="Debug mode with printouts")
 parser.add_argument(
     "--num_episodes", type=int, default=10000, help="Number of episodes to run for."
 )
@@ -29,6 +29,7 @@ BOARD_DEPTH = 16
 NUM_EPISODES = args.num_episodes  # number of "games" to train the agent with
 EPISODE_LENGTH = 2**20  # max number of moves per game
 TRAIN = args.test
+DEBUG = args.debug
 
 
 def create_environment():
@@ -83,6 +84,11 @@ def train_agent(
             # run the simulation
             episode_reward = 0
             for t in range(EPISODE_LENGTH):
+                if DEBUG:
+                    ic(t)
+                    ic(env.board)
+                    ic(env.available_moves())
+
                 # choose best action, with noise
                 observation_input = np.array([observation], dtype=np.float32) / np.sqrt(
                     BOARD_DEPTH
@@ -102,7 +108,8 @@ def train_agent(
                     ]
                 # ic(Qvals, moves_input, Qvals * moves_input)
                 assert moves[0][action] > 0
-                # ic(action)
+                if DEBUG:
+                    ic(action)
 
                 # check for any NaN values encountered in output
                 if np.isnan(Qvals.numpy()).any():
@@ -112,6 +119,8 @@ def train_agent(
                 # make a step in the environment
                 new_observation, reward, done, _ = env.step(action[0])
                 episode_reward += reward
+                if DEBUG:
+                    ic(env.board)
 
                 new_moves = env.available_moves()
 
