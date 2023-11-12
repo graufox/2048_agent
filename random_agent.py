@@ -38,18 +38,16 @@ lengths = []
 # iterate through a number of episodes
 
 try:
-
     for i_episode in range(num_episodes):
-
         # start with a fresh environment
         observation = env.reset()
 
         # run the simulation
         episode_reward = 0
         for t in range(episode_length):
-
+            moves = env.available_moves()[0]
             # choose random action
-            action = [randint(4)]
+            action = [np.random.choice(range(4), p=(moves / moves.sum()))]
 
             # make a step in the environment
             new_observation, reward, done, info = env.step(action[0])
