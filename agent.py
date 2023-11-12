@@ -172,7 +172,7 @@ def compute_performance(scores, rewards):
     print("\tStandard Deviation of Fitness: {}".format(np.std(scores)))
     print("\tScore Quantile: {}".format(score_quantile(np.mean(rewards))))
 
-    fig, (ax, ax_hist) = plt.subplots(1, 2)
+    fig, (ax, ax_quant) = plt.subplots(1, 2)
 
     ax.plot(rewards)
     ax.plot(ema(rewards, 0.1))
@@ -180,6 +180,15 @@ def compute_performance(scores, rewards):
     ax.set_xlabel("Game Number")
     ax.set_ylabel("Game Reward")
     ax.set_title("Reward Over Time")
+
+    reward_quantiles = np.array([score_quantile(reward) for reward in rewards])
+    ax_quant.plot(reward_quantiles)
+    ax_quant.plot(ema(reward_quantiles, 0.1))
+    ax_quant.set_ylim([-0.1, 1.1])
+    ax_quant.grid()
+    ax_quant.set_xlabel("Game Number")
+    ax_quant.set_ylabel("Game Reward Quantile w.r.t. Random")
+    ax_quant.set_title("Reward Quantile Over Time")
 
     fig.set_size_inches(8, 4)
     plt.savefig("score_over_time.png")
