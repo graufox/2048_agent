@@ -12,13 +12,23 @@ from game import Game
 from model import ReinforcementAgent, RotationalReinforcementAgent
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--new", action="store_true", help="make a new model")
+parser.add_argument("--new", action="store_true", help="Make a new model")
+parser.add_argument("--test", action="store_true", help="Test and not train the model")
 args, unknown = parser.parse_known_args()
+parser.add_argument(
+    "--num_episodes", type=int, default=10000, help="Number of episodes to run for."
+)
+parser.add_argument(
+    "--episode_length", type=int, default=10000, help="Max length of an episode."
+)
+args = parser.parse_args()
+num_episodes = args.num_episodes
 
 BOARD_SIZE = 4
 BOARD_DEPTH = 16
-NUM_EPISODES = 10000  # number of "games" to train the agent with
+NUM_EPISODES = args.num_episodes  # number of "games" to train the agent with
 EPISODE_LENGTH = 2**20  # max number of moves per game
+TRAIN = args.test
 
 
 def create_environment():
