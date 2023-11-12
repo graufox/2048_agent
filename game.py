@@ -181,7 +181,6 @@ class Game:
     def step(self, action):
         """for openai gym"""
 
-        old_score = self.score
         # decode action
         if action == 0:
             slide_reward = self.slide_up()
@@ -192,7 +191,8 @@ class Game:
         elif action == 3:
             slide_reward = self.slide_left()
 
-        reward = np.log1p(slide_reward)
+        # reward = np.log1p(slide_reward)
+        reward = slide_reward
         done = self.is_done()
         if not done:
             self.last_board = self.board
