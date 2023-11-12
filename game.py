@@ -55,6 +55,11 @@ assert np.equal(
 assert np.equal(
     slide_column_down(np.array([0, 0, 0, 0]), 4, False), np.array([0, 0, 0, 0])
 ).all()
+
+assert np.equal(
+    slide_column_down(np.array([0, 4, 0, 0]), 4, False), np.array([0, 0, 0, 4])
+).all()
+
 assert np.equal(
     slide_column_down(np.array([2, 4, 8, 16]), 4, False), np.array([2, 4, 8, 16])
 ).all()
