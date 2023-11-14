@@ -5,6 +5,7 @@ from tensorflow.keras import constraints
 
 
 class DenseStack(layers.Layer):
+    """Dense layer, followed by batch normalization and dropout."""
     def __init__(
         self,
         units=1024,
@@ -28,6 +29,7 @@ class DenseStack(layers.Layer):
 
 
 class Conv2DStack(layers.Layer):
+    """2D convolution layer, followed by batch normalization and spatial dropout."""
     def __init__(
         self,
         filters=32,
@@ -55,6 +57,7 @@ class Conv2DStack(layers.Layer):
 
 
 class Conv3DStack(layers.Layer):
+    """3D convolution layer, followed by batch normalization and spatial dropout."""
     def __init__(
         self,
         filters=32,
@@ -111,7 +114,7 @@ class ConvModel(tf.keras.models.Model):
             self.convs.append(
                 Conv2DStack(
                     filters=conv_filters,
-                    kernel_size=(3, 3),
+                    kernel_size=kernel_size,
                     dropout_rate=conv_dropout,
                     padding="same",
                 )
@@ -178,6 +181,7 @@ class ReinforcementAgent(tf.keras.models.Model):
             kernel_size=kernel_size,
             board_depth=board_depth,
             board_size=board_size,
+            output_units=output_units,
             output_activation=None,
         )
 
@@ -236,6 +240,7 @@ class RotationalReinforcementAgent(tf.keras.models.Model):
             dense_units=dense_units,
             dense_dropout=dense_dropout,
             kernel_size=kernel_size,
+            output_units=output_units,
             output_activation=None,
             use_preprocessing=use_preprocessing,
         )
