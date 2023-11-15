@@ -70,8 +70,8 @@ performance_df = pd.DataFrame({"score": scores, "reward": rewards, "length": len
 
 print(performance_df.describe())
 
-performance_df.describe().to_csv("random_reward_statistics.csv")
-performance_df.to_csv("random_reward_results.csv")
+performance_df.describe().to_csv("random_reward_statistics.csv", index=False)
+performance_df.to_csv("random_reward_results.csv", index=False)
 
 plt.hist(rewards, bins=np.arange(0, 4000, 100))
 plt.title("Histogram of Rewards")
