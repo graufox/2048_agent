@@ -39,6 +39,7 @@ lengths = []
 
 try:
     for i_episode in range(num_episodes):
+        print(f'episode {i_episode+1} of {num_episodes}')
         # start with a fresh environment
         observation = env.reset()
 
