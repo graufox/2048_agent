@@ -16,7 +16,6 @@ class DenseStack(layers.Layer):
         self.dense_layer = layers.Dense(
             units=units,
             activation=activation,
-            kernel_constraint=constraints.MaxNorm(2.0),
         )
         self.bn_layer = layers.BatchNormalization()
         self.dropout_layer = layers.Dropout(dropout_rate)
@@ -44,7 +43,6 @@ class Conv2DStack(layers.Layer):
             kernel_size=kernel_size,
             activation=activation,
             padding=padding,
-            kernel_constraint=constraints.MaxNorm(2.0, axis=[0, 1, 2]),
         )
         self.bn_layer = layers.BatchNormalization()
         self.dropout_layer = layers.SpatialDropout2D(dropout_rate)
