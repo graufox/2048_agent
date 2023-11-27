@@ -31,7 +31,8 @@ episode_length = 2**20  # max number of moves per game
 
 # set up lists for keeping track of progress
 scores = []
-rewards = []
+reward_totals = []
+reward_stds = []
 observations = []
 lengths = []
 
@@ -44,7 +45,7 @@ try:
         observation = env.reset()
 
         # run the simulation
-        episode_reward = 0
+        episode_rewards = []
         for t in range(episode_length):
             moves = env.available_moves()[0]
             # choose random action
@@ -52,7 +53,7 @@ try:
 
             # make a step in the environment
             new_observation, reward, done, info = env.step(action[0])
-            episode_reward += reward
+            episode_rewards += [reward]
 
             observation = new_observation
             observations += [new_observation]
@@ -61,20 +62,21 @@ try:
                 break
 
         scores += [env.score]
-        rewards += [episode_reward]
+        reward_totals += [np.sum(episode_rewards)]
+        reward_stds += [np.std(episode_rewards)]
         lengths += [t + 1]
 
 except KeyboardInterrupt:
     print("simulation aborted")
 
-performance_df = pd.DataFrame({"score": scores, "reward": rewards, "length": lengths})
+performance_df = pd.DataFrame({"score": scores, "reward": reward_totals, "reward_std": reward_stds, "length": lengths})
 
 print(performance_df.describe())
 
 performance_df.describe().to_csv("random_reward_statistics.csv", index=False)
 performance_df.to_csv("random_reward_results.csv", index=False)
 
-plt.hist(rewards, bins=np.arange(0, 4000, 100))
+plt.hist(reward_totals, bins=np.arange(0, np.quantile(reward_totals, 0.99) * 1.1, 10))
 plt.title("Histogram of Rewards")
 plt.savefig("random_scores_histogram.png")
 plt.show()
