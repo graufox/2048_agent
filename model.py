@@ -17,12 +17,12 @@ class DenseStack(layers.Layer):
             units=units,
             activation=activation,
         )
-        self.bn_layer = layers.BatchNormalization()
+        self.norm_layer = layers.LayerNormalization()
         self.dropout_layer = layers.Dropout(dropout_rate)
 
     def call(self, inputs, training=False):
         x = self.dense_layer(inputs)
-        x_bn = self.bn_layer(x, training=training)
+        x_bn = self.norm_layer(x, training=training)
         x_do = self.dropout_layer(x_bn, training=training)
         return x_do
 
@@ -44,12 +44,12 @@ class Conv2DStack(layers.Layer):
             activation=activation,
             padding=padding,
         )
-        self.bn_layer = layers.BatchNormalization()
+        self.norm_layer = layers.LayerNormalization()
         self.dropout_layer = layers.SpatialDropout2D(dropout_rate)
 
     def call(self, inputs, training=False):
         x = self.conv_layer(inputs)
-        x_bn = self.bn_layer(x, training=training)
+        x_bn = self.norm_layer(x, training=training)
         x_do = self.dropout_layer(x_bn, training=training)
         return x_do
 
@@ -72,12 +72,12 @@ class Conv3DStack(layers.Layer):
             padding=padding,
             kernel_constraint=constraints.MaxNorm(2.0, axis=[0, 1, 2]),
         )
-        self.bn_layer = layers.BatchNormalization()
+        self.norm_layer = layers.LayerNormalization()
         self.dropout_layer = layers.SpatialDropout3D(dropout_rate)
 
     def call(self, inputs, training=False):
         x = self.conv_layer(inputs)
-        x_bn = self.bn_layer(x, training=training)
+        x_bn = self.norm_layer(x, training=training)
         x_do = self.dropout_layer(x_bn, training=training)
         return x_do
 
