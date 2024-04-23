@@ -32,9 +32,9 @@ TRAIN = args.test
 DEBUG = args.debug
 
 
-def create_environment():
-    """Create the environment, i.e. the 2048 game."""
-    return Game(board_size=BOARD_SIZE, board_depth=BOARD_DEPTH)
+def create_environment(board_size=4, board_depth=16,):
+    """Create the environment for the 2048 game."""
+    return Game(board_size=board_size, board_depth=board_size)
 
 
 def create_agent(
@@ -68,6 +68,8 @@ def train_agent(
     agent,
     env,
     gamma=0.97,
+    num_episodes=10_000,
+    max_episode_length=1e6,
     checkpoint_path="training/model_checkpoint.ckpt",
 ):
     """Train the agent on the game."""
@@ -79,7 +81,7 @@ def train_agent(
 
     try:
         # iterate through a number of episodes
-        for i_episode in range(NUM_EPISODES):
+        for i_episode in range(num_episodes):
             # start with a fresh environment
             observation, moves_input = env.reset()
             episode_reward = 0
@@ -134,24 +136,24 @@ def train_agent(
                 # backpropagate error between predicted and new Q values for state
                 if TRAIN:
                     agent.train_step((observation_input, moves_input), targetQ)
-                    if np.random.rand() < 2e-1:
+                    if np.random.rand() < 5e-1:
                         buffer.append(((observation_input, moves_input), targetQ))
-                    if np.random.rand() < 2e-1:
+                    if np.random.rand() < 5e-1:
                         if len(buffer) > 0:
                             random_idx = np.random.randint(len(buffer))
                             (old_observation_input, old_moves_input), old_targetQ = buffer.pop(random_idx)
                             agent.train_step((observation_input, moves_input), targetQ)
 
                 # end game if finished
-                if done:
+                if done or t > max_episode_length:
                     random_rank = score_quantile(episode_reward)
                     highest_tile = env.board.max()
                     ic(
                         i_episode,
-                        t,
+                        # t,
                         env.score,
-                        random_rank,
-                        highest_tile,
+                        # random_rank,
+                        # highest_tile,
                     )
                     break
 
@@ -205,15 +207,20 @@ def compute_performance(scores, rewards):
     plt.show()
 
 
-def main():
+def main(
+    board_size=4,
+    board_depth=16,
+    num_episodes=10_000,
+    max_episode_length=1e6,
+):
     """Run model and save, outputting figures of reward over time."""
 
     # define environment, in this case a game of 2048
-    env = create_environment()
+    env = create_environment(board_size=board_size, board_depth=board_depth)
     agent = create_agent()
-    scores, rewards = train_agent(agent, env)
+    scores, rewards = train_agent(agent, env, num_episodes=num_episodes, max_episode_length=max_episode_length,)
     compute_performance(scores, rewards)
-
+    return agent, env, scores, rewards
 
 if __name__ == "__main__":
-    main()
+    main(BOARD_SIZE, BOARD_DEPTH, NUM_EPISODES, EPISODE_LENGTH)
