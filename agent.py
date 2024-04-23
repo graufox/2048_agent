@@ -149,6 +149,7 @@ def train_agent(
 
                 # log observations
                 observation = new_observation.copy()
+                moves_input = new_moves_input.copy()
 
             # log scores and rewards for game
             scores += [env.score]
