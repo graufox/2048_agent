@@ -87,7 +87,7 @@ class Game:
         # clear the board
         self.board = np.zeros((self.board_size, self.board_size), dtype=np.int32)
         # put a 2 in a random place on the board
-        i, j = randint(self.board_size), randint(self.board_size)
+        i, j = randint(low=0, high=self.board_size, size=2)
         self.add_random_tile()
 
     def slide_down(self):
@@ -109,14 +109,14 @@ class Game:
         # update board and move count
         self.board = new_board
         self.num_moves += 1
-        self.score += slide_reward
+        self.score += slide_reward 
         return slide_reward
 
     def add_random_tile(self):
         """add new tile (usually 2) to a random blank spot"""
         blank_row_idxs, blank_col_idxs = np.where(self.board <= 0)
         num_blanks = len(blank_row_idxs)
-        selected_position = randint(num_blanks)
+        selected_position = randint(low=0, high=num_blanks,)
         selected_row_idx = blank_row_idxs[selected_position]
         selected_col_idx = blank_col_idxs[selected_position]
         tile_value = 2 if (rand() < 0.9) else 4
@@ -166,7 +166,6 @@ class Game:
         if board_full:
             diffs_x = np.diff(self.board)
             diffs_y = np.diff(self.board.transpose())
-            # print(diffs_x, diffs_y)
             fully_mixed = (np.abs(diffs_x) > 0).all() and (np.abs(diffs_y) > 0).all()
             done = board_full and fully_mixed
         return done
@@ -176,7 +175,7 @@ class Game:
         self.refresh_board()
         self.score = 0
         self.num_moves = 0
-        return board_2_array(self.board, self.board_size, self.board_depth)
+        return board_2_array(self.board, self.board_size, self.board_depth), np.ones((1, 4), dtype=np.float32)
 
     def step(self, action):
         """for openai gym"""
@@ -191,7 +190,6 @@ class Game:
         elif action == 3:
             slide_reward = self.slide_left()
 
-        # reward = np.log1p(slide_reward)
         reward = slide_reward
         done = self.is_done()
         if not done:

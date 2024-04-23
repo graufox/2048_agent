@@ -79,7 +79,7 @@ def train_agent(
         # iterate through a number of episodes
         for i_episode in range(NUM_EPISODES):
             # start with a fresh environment
-            observation = env.reset()
+            observation, moves_input = env.reset()
 
             # run the simulation
             episode_reward = 0
@@ -93,12 +93,10 @@ def train_agent(
                 observation_input = np.array([observation], dtype=np.float32) / np.sqrt(
                     BOARD_DEPTH
                 )
-                moves = env.available_moves()
-                moves_input = np.array(moves, dtype=np.float32)
-                Qvals, _ = agent((observation_input, moves_input))
+                Qvals, max_action = agent((observation_input, moves_input))
                 action = [np.argmax(Qvals[0].numpy() * moves_input + 1e-3)]
                 # ic(Qvals, moves_input, Qvals * moves_input)
-                assert moves[0][action] > 0
+                assert moves_input[0][action] > 0
                 if DEBUG:
                     ic(action)
 
