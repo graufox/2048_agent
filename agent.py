@@ -83,12 +83,11 @@ def train_agent(
             observation, moves_input = env.reset()
 
             # run the simulation
-            episode_reward = 0
             for t in range(EPISODE_LENGTH):
                 if DEBUG:
                     ic(t)
-                    ic(env.board)
-                    ic(env.available_moves())
+                    # ic(env.board)
+                    # ic(env.available_moves())
 
                 # choose best action, with noise
                 observation_input = np.array([observation], dtype=np.float32) / np.sqrt(
@@ -99,18 +98,19 @@ def train_agent(
                 # ic(Qvals, moves_input, Qvals * moves_input)
                 assert moves_input[0][action] > 0
                 if DEBUG:
-                    ic(action)
+                    ic(Qvals, action, moves_input, env.board)
 
                 # check for any NaN values encountered in output
                 if np.isnan(Qvals.numpy()).any():
                     ic(Qvals)
+                    print('NaN in model outputs, aborting')
                     raise ValueError
 
                 # make a step in the environment
                 new_observation, reward, done, _ = env.step(action[0])
                 episode_reward += reward
                 if DEBUG:
-                    ic(env.board)
+                    ic(env.board, reward)
 
                 new_moves = env.available_moves()
 
