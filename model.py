@@ -17,14 +17,14 @@ class DenseStack(layers.Layer):
             units=units,
             activation=activation,
         )
-        self.norm_layer = layers.LayerNormalization()
+        # self.norm_layer = layers.LayerNormalization()
         self.dropout_layer = layers.Dropout(dropout_rate)
 
     def call(self, inputs, training=False):
         x = self.dense_layer(inputs)
-        x_bn = self.norm_layer(x, training=training)
-        x_do = self.dropout_layer(x_bn, training=training)
-        return x_do
+        # x_bn = self.norm_layer(x, training=training)
+        x = self.dropout_layer(x, training=training)
+        return x
 
 
 class Conv2DStack(layers.Layer):
@@ -44,14 +44,14 @@ class Conv2DStack(layers.Layer):
             activation=activation,
             padding=padding,
         )
-        self.norm_layer = layers.LayerNormalization()
+        # self.norm_layer = layers.LayerNormalization()
         self.dropout_layer = layers.SpatialDropout2D(dropout_rate)
 
     def call(self, inputs, training=False):
         x = self.conv_layer(inputs)
-        x_bn = self.norm_layer(x, training=training)
-        x_do = self.dropout_layer(x_bn, training=training)
-        return x_do
+        # x = self.norm_layer(x, training=training)
+        x = self.dropout_layer(x, training=training)
+        return x
 
 
 class Conv3DStack(layers.Layer):
@@ -70,15 +70,15 @@ class Conv3DStack(layers.Layer):
             kernel_size=kernel_size,
             activation=activation,
             padding=padding,
-            kernel_constraint=constraints.MaxNorm(2.0, axis=[0, 1, 2]),
+            # kernel_constraint=constraints.MaxNorm(2.0, axis=[0, 1, 2]),
         )
-        self.norm_layer = layers.LayerNormalization()
+        # self.norm_layer = layers.LayerNormalization()
         self.dropout_layer = layers.SpatialDropout3D(dropout_rate)
 
     def call(self, inputs, training=False):
         x = self.conv_layer(inputs)
-        x_bn = self.norm_layer(x, training=training)
-        x_do = self.dropout_layer(x_bn, training=training)
+        # x_bn = self.norm_layer(x, training=training)
+        x_do = self.dropout_layer(x, training=training)
         return x_do
 
 
