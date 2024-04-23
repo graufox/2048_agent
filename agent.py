@@ -16,10 +16,10 @@ parser.add_argument("--new", action="store_true", help="Make a new model")
 parser.add_argument("--test", action="store_true", help="Test and not train the model")
 parser.add_argument("--debug", action="store_true", help="Debug mode with printouts")
 parser.add_argument(
-    "--num_episodes", type=int, default=10000, help="Number of episodes to run for."
+    "--num_episodes", type=int, default=10_000, help="Number of episodes to run for."
 )
 parser.add_argument(
-    "--episode_length", type=int, default=10000, help="Max length of an episode."
+    "--episode_length", type=int, default=10_000, help="Max length of an episode."
 )
 args, unknown = parser.parse_known_args()
 num_episodes = args.num_episodes
