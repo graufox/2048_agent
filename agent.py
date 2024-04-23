@@ -45,10 +45,11 @@ def create_agent(
     """Create the reinforcement agent."""
     # make model for Q
     agent = ReinforcementAgent(
-        conv_filters=32,
-        conv_dropout=0.2,
+        conv_filters=128,
+        conv_dropout=0.1,
         num_conv_stacks=1,
-        dense_units=(16,),
+        kernel_size=(1, 1),
+        dense_units=(32,),
         dense_dropout=0.1,
         board_depth=BOARD_DEPTH,
         board_size=BOARD_SIZE,
@@ -66,7 +67,7 @@ def create_agent(
 def train_agent(
     agent,
     env,
-    gamma=0.90,
+    gamma=0.97,
     checkpoint_path="training/model_checkpoint.ckpt",
 ):
     """Train the agent on the game."""
