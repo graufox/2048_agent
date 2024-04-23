@@ -137,13 +137,14 @@ def train_agent(
 
                 # end game if finished
                 if done:
+                    random_rank = score_quantile(episode_reward)
+                    highest_tile = env.board.max()
                     ic(
                         i_episode,
                         t,
-                        env.board,
                         env.score,
-                        score_quantile(episode_reward),
-                        env.board.max(),
+                        random_rank,
+                        highest_tile,
                     )
                     break
 
