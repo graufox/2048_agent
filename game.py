@@ -49,6 +49,10 @@ assert np.equal(
 ).all()
 
 assert np.equal(
+    slide_column_down(np.array([4, 2, 2, 0]), 4, False), np.array([0, 0, 4, 4])
+).all()
+
+assert np.equal(
     slide_column_down(np.array([2, 16, 4, 0]), 4, False), np.array([0, 2, 16, 4])
 ).all()
 
@@ -75,7 +79,7 @@ class Game:
     def __init__(self, board_size=4, board_depth=17):
         self.board_size = board_size
         self.board_depth = board_depth
-        self.board = np.zeros((board_size, board_size, board_size), dtype=np.int32)
+        self.board = np.zeros((board_size, board_size, board_depth), dtype=np.int32)
         self.score = 0
         self.num_moves = 0
         self.action_space = [0, 1, 2, 3]
@@ -98,7 +102,7 @@ class Game:
         # for each column:
         slide_reward = 0
         for j in range(self.board_size):
-            col = new_board[:, j]
+            col = np.array(new_board[:, j])
             new_col, reward = slide_column_down(
                 col, board_size=self.board_size, return_score=True
             )
@@ -116,6 +120,7 @@ class Game:
         """add new tile (usually 2) to a random blank spot"""
         blank_row_idxs, blank_col_idxs = np.where(self.board <= 0)
         num_blanks = len(blank_row_idxs)
+        assert num_blanks > 0, 'no blank spaces to insert tile'
         selected_position = randint(low=0, high=num_blanks,)
         selected_row_idx = blank_row_idxs[selected_position]
         selected_col_idx = blank_col_idxs[selected_position]
@@ -144,13 +149,13 @@ class Game:
         return slide_reward
 
     def available_moves(self):
-        """returns all available moves at the current state"""
+        """returns all available moves at the current state, URDL"""
 
         def check_slide_up(board):
             for col_idx in range(4):
                 col = np.array(board[:, col_idx]).astype(int)
                 col = col[col > 0]
-                if (np.abs(np.diff(col)) <= 0).any() or len(col) < 4:
+                if (len(col) < 4) or (np.abs(np.diff(col)) <= 0).any():
                     return True
             return False
 
@@ -164,10 +169,10 @@ class Game:
         done = False
         board_full = (self.board > 0).all()
         if board_full:
-            diffs_x = np.diff(self.board)
-            diffs_y = np.diff(self.board.transpose())
+            diffs_x = np.diff(self.board, axis=0)
+            diffs_y = np.diff(self.board, axis=1)
             fully_mixed = (np.abs(diffs_x) > 0).all() and (np.abs(diffs_y) > 0).all()
-            done = board_full and fully_mixed
+            done = fully_mixed
         return done
 
     def reset(self):
