@@ -75,6 +75,7 @@ def train_agent(
     # set up lists for keeping track of progress
     scores = []
     rewards = []
+    buffer = []
 
     try:
         # iterate through a number of episodes
@@ -133,6 +134,13 @@ def train_agent(
                 # backpropagate error between predicted and new Q values for state
                 if TRAIN:
                     agent.train_step((observation_input, moves_input), targetQ)
+                    if np.random.rand() < 2e-1:
+                        buffer.append(((observation_input, moves_input), targetQ))
+                    if np.random.rand() < 2e-1:
+                        if len(buffer) > 0:
+                            random_idx = np.random.randint(len(buffer))
+                            (old_observation_input, old_moves_input), old_targetQ = buffer.pop(random_idx)
+                            agent.train_step((observation_input, moves_input), targetQ)
 
                 # end game if finished
                 if done:
