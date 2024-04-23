@@ -195,7 +195,7 @@ class Game:
         elif action == 3:
             slide_reward = self.slide_left()
 
-        reward = slide_reward
+        reward = np.log1p(slide_reward) / np.log(2.) - 0.1
         done = self.is_done()
         if not done:
             self.last_board = self.board
