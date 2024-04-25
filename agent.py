@@ -1,5 +1,3 @@
-import argparse
-
 import numpy as np
 import pandas as pd
 from icecream import ic
@@ -10,26 +8,6 @@ from tensorflow.python.framework import errors_impl
 from funcs import ema, score_quantile
 from game import Game
 from model import ReinforcementAgent, RotationalReinforcementAgent
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--new", action="store_true", help="Make a new model")
-parser.add_argument("--test", action="store_true", help="Test and not train the model")
-parser.add_argument("--debug", action="store_true", help="Debug mode with printouts")
-parser.add_argument(
-    "--num_episodes", type=int, default=10_000, help="Number of episodes to run for."
-)
-parser.add_argument(
-    "--episode_length", type=int, default=10_000, help="Max length of an episode."
-)
-args, unknown = parser.parse_known_args()
-num_episodes = args.num_episodes
-
-BOARD_SIZE = 4
-BOARD_DEPTH = 16
-NUM_EPISODES = args.num_episodes  # number of "games" to train the agent with
-EPISODE_LENGTH = args.episode_length  # max number of moves per game
-TRAIN = args.test
-DEBUG = args.debug
 
 
 def create_environment(
@@ -239,4 +217,38 @@ def main(
 
 
 if __name__ == "__main__":
-    main(BOARD_SIZE, BOARD_DEPTH, NUM_EPISODES, EPISODE_LENGTH, TRAIN)
+
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--new", action="store_true", help="Make a new model")
+    parser.add_argument(
+        "--debug", action="store_true", help="Debug mode with printouts"
+    )
+    parser.add_argument(
+        "--num_episodes",
+        type=int,
+        default=10_000,
+        help="Number of episodes to run for.",
+    )
+    parser.add_argument(
+        "--episode_length", type=int, default=10_000, help="Max length of an episode."
+    )
+    args, unknown = parser.parse_known_args()
+    num_episodes = args.num_episodes
+
+    BOARD_SIZE = 4
+    BOARD_DEPTH = 16
+    NUM_EPISODES = args.num_episodes  # number of "games" to train the agent with
+    EPISODE_LENGTH = args.episode_length  # max number of moves per game
+    TRAIN = args.new
+    DEBUG = args.debug
+
+    main(
+        BOARD_SIZE,
+        BOARD_DEPTH,
+        NUM_EPISODES,
+        EPISODE_LENGTH,
+        TRAIN,
+        DEBUG,
+    )
