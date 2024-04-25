@@ -192,6 +192,7 @@ def main(
     num_episodes=10_000,
     max_episode_length=1e6,
     train=None,
+    debug_printout=False,
 ):
     """Run model and save, outputting figures of reward over time."""
 
@@ -200,22 +201,29 @@ def main(
 
     # define environment, in this case a game of 2048
     env = create_environment(board_size=board_size, board_depth=board_depth)
+    print("environment created")
     agent = create_agent(new_agent=train)
+    print("agent created")
     if train:
+        print("training...")
         try:
             scores, rewards = train_agent(
                 agent,
                 env,
                 num_episodes=num_episodes,
                 max_episode_length=max_episode_length,
+                debug_printout=debug_printout,
             )
         except KeyboardInterrupt:
             print("aborted by user")
         except ValueError as e:
             print(f"value error: {e}")
+        print("finished training")
+        if len(scores) > 0:
+            compute_performance(scores, rewards)
     else:
         scores, rewards = [], []
-    compute_performance(scores, rewards)
+    print("done")
     return agent, env, scores, rewards
 
 
