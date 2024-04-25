@@ -19,8 +19,10 @@ def create_environment(
 
 
 def create_agent(
+    board_size=4,
+    board_depth=4,
     learning_rate=1e-3,
-    new_agent=args.new,
+    new_agent=True,
     checkpoint_path="training/model_checkpoint.ckpt",
 ):
     """Create the reinforcement agent."""
@@ -32,8 +34,8 @@ def create_agent(
         kernel_size=(1, 1),
         dense_units=(32,),
         dense_dropout=0.1,
-        board_depth=BOARD_DEPTH,
-        board_size=BOARD_SIZE,
+        board_size=board_size,
+        board_depth=board_depth,
     )
     agent.compile(optimizer=optimizers.Adam(learning_rate))
     if not new_agent:
@@ -49,6 +51,7 @@ def train_agent(
     agent,
     env,
     gamma=0.97,
+    debug_printout=False,
     num_episodes=10_000,
     max_episode_length=1e6,
     checkpoint_path="training/model_checkpoint.ckpt",
@@ -75,12 +78,12 @@ def train_agent(
 
             # choose best action, with noise
             observation_input = np.array([observation], dtype=np.float32) / np.sqrt(
-                BOARD_DEPTH
+                env.board_depth
             )
             Qvals, _ = agent((observation_input, moves_input))
             action = [np.argmax(Qvals[0].numpy() * moves_input + 1e-3)]
             assert moves_input[0][action] > 0
-            if DEBUG:
+            if debug_printout:
                 ic(Qvals, action, moves_input, env.board)
 
             # check for any NaN values encountered in output
@@ -92,7 +95,7 @@ def train_agent(
             # make a step in the environment
             new_observation, reward, done, _ = env.step(action[0])
             episode_reward += reward
-            if DEBUG:
+            if debug_printout:
                 ic(env.board, reward)
 
             new_moves = env.available_moves()
@@ -100,7 +103,7 @@ def train_agent(
             # get Q-values for actions in new state
             new_observation_input = np.array(
                 [new_observation], dtype=np.float32
-            ) / np.sqrt(BOARD_DEPTH)
+            ) / np.sqrt(env.board_depth)
             new_moves_input = np.array(new_moves, dtype=np.float32)
             Q1, _ = agent((new_observation_input, new_moves_input))
 
