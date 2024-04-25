@@ -203,7 +203,7 @@ class ReinforcementAgent(tf.keras.models.Model):
             # selected_Q = tf.gather(Q, action, axis=1)
             grads = tape.gradient(loss_value, self.trainable_weights)
             grads = [
-                None if gradient is None else tf.clip_by_value(gradient, -0.1, 0.1)
+                (None if gradient is None else tf.clip_by_norm(gradient, 1.0))
                 for gradient in grads
             ]
             self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
