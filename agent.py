@@ -204,6 +204,7 @@ def main(
     print("environment created")
     agent = create_agent(new_agent=train)
     print("agent created")
+    scores, rewards = [], []
     if train:
         print("training...")
         try:
@@ -221,8 +222,6 @@ def main(
         print("finished training")
         if len(scores) > 0:
             compute_performance(scores, rewards)
-    else:
-        scores, rewards = [], []
     print("done")
     return agent, env, scores, rewards
 
