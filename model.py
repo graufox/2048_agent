@@ -6,6 +6,7 @@ from tensorflow.keras import constraints
 
 class DenseStack(layers.Layer):
     """Dense layer, followed by batch normalization and dropout."""
+
     def __init__(
         self,
         units=1024,
@@ -29,6 +30,7 @@ class DenseStack(layers.Layer):
 
 class Conv2DStack(layers.Layer):
     """2D convolution layer, followed by batch normalization and spatial dropout."""
+
     def __init__(
         self,
         filters=32,
@@ -56,6 +58,7 @@ class Conv2DStack(layers.Layer):
 
 class Conv3DStack(layers.Layer):
     """3D convolution layer, followed by batch normalization and spatial dropout."""
+
     def __init__(
         self,
         filters=32,

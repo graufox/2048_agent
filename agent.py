@@ -32,7 +32,10 @@ TRAIN = args.test
 DEBUG = args.debug
 
 
-def create_environment(board_size=4, board_depth=16,):
+def create_environment(
+    board_size=4,
+    board_depth=16,
+):
     """Create the environment for the 2048 game."""
     return Game(board_size=board_size, board_depth=board_size)
 
