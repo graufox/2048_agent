@@ -18,12 +18,10 @@ class DenseStack(layers.Layer):
             units=units,
             activation=activation,
         )
-        # self.norm_layer = layers.LayerNormalization()
         self.dropout_layer = layers.Dropout(dropout_rate)
 
     def call(self, inputs, training=False):
         x = self.dense_layer(inputs)
-        # x_bn = self.norm_layer(x, training=training)
         x = self.dropout_layer(x, training=training)
         return x
 
@@ -46,12 +44,10 @@ class Conv2DStack(layers.Layer):
             activation=activation,
             padding=padding,
         )
-        # self.norm_layer = layers.LayerNormalization()
         self.dropout_layer = layers.SpatialDropout2D(dropout_rate)
 
     def call(self, inputs, training=False):
         x = self.conv_layer(inputs)
-        # x = self.norm_layer(x, training=training)
         x = self.dropout_layer(x, training=training)
         return x
 
@@ -73,14 +69,11 @@ class Conv3DStack(layers.Layer):
             kernel_size=kernel_size,
             activation=activation,
             padding=padding,
-            # kernel_constraint=constraints.MaxNorm(2.0, axis=[0, 1, 2]),
         )
-        # self.norm_layer = layers.LayerNormalization()
         self.dropout_layer = layers.SpatialDropout3D(dropout_rate)
 
     def call(self, inputs, training=False):
         x = self.conv_layer(inputs)
-        # x_bn = self.norm_layer(x, training=training)
         x_do = self.dropout_layer(x, training=training)
         return x_do
 
@@ -120,7 +113,6 @@ class ConvModel(tf.keras.models.Model):
                     padding="same",
                 )
             )
-        # self.conv_pool = layers.GlobalMaxPooling2D()
         self.conv_flatten = layers.Flatten()
         self.dense_layers = []
         for units in dense_units:
@@ -140,7 +132,6 @@ class ConvModel(tf.keras.models.Model):
             x = self.preproc(x)
         for conv in self.convs:
             x = x + conv(x, training=training)
-        # x = self.conv_pool(x)
         x = self.conv_flatten(x)
         for layer in self.dense_layers:
             x = layer(x, training=training)
@@ -200,7 +191,6 @@ class ReinforcementAgent(tf.keras.models.Model):
         with tf.GradientTape() as tape:
             Q, _ = self(x, training=True)
             loss_value = tf.keras.losses.Huber()(targetQ, Q)
-            # selected_Q = tf.gather(Q, action, axis=1)
             grads = tape.gradient(loss_value, self.trainable_weights)
             grads = [
                 (None if gradient is None else tf.clip_by_norm(gradient, 1.0))
