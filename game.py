@@ -113,15 +113,18 @@ class Game:
         # update board and move count
         self.board = new_board
         self.num_moves += 1
-        self.score += slide_reward 
+        self.score += slide_reward
         return slide_reward
 
     def add_random_tile(self):
         """add new tile (usually 2) to a random blank spot"""
         blank_row_idxs, blank_col_idxs = np.where(self.board <= 0)
         num_blanks = len(blank_row_idxs)
-        assert num_blanks > 0, 'no blank spaces to insert tile'
-        selected_position = randint(low=0, high=num_blanks,)
+        assert num_blanks > 0, "no blank spaces to insert tile"
+        selected_position = randint(
+            low=0,
+            high=num_blanks,
+        )
         selected_row_idx = blank_row_idxs[selected_position]
         selected_col_idx = blank_col_idxs[selected_position]
         tile_value = 2 if (rand() < 0.9) else 4
@@ -180,7 +183,10 @@ class Game:
         self.refresh_board()
         self.score = 0
         self.num_moves = 0
-        return board_2_array(self.board, self.board_size, self.board_depth), np.ones((1, 4), dtype=np.float32)
+        return (
+            board_2_array(self.board, self.board_size, self.board_depth),
+            np.ones((1, 4), dtype=np.float32),
+        )
 
     def step(self, action):
         """for openai gym"""
@@ -195,7 +201,7 @@ class Game:
         elif action == 3:
             slide_reward = self.slide_left()
 
-        reward = np.log1p(slide_reward) / np.log(2.) - 0.1
+        reward = np.log1p(slide_reward) / np.log(2.0) - 0.1
         done = self.is_done()
         if not done:
             self.last_board = self.board
