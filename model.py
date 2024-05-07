@@ -394,5 +394,9 @@ class RotationalReinforcementAgent(tf.keras.models.Model):
             Q, _ = self(x, training=True)
             loss_value = tf.keras.losses.Huber()(targetQ, Q)
             grads = tape.gradient(loss_value, self.trainable_weights)
+            grads = [
+                (None if gradient is None else tf.clip_by_norm(gradient, 0.3))
+                for gradient in grads
+            ]
             self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         return loss_value
