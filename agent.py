@@ -82,8 +82,8 @@ def train_agent(
                 env.board_depth
             )
             Qvals, _ = agent((observation_input, moves_input))
-            action = [np.argmax(Qvals[0].numpy() * moves_input + 1e-3)]
-            assert moves_input[0][action] > 0
+            action = [np.argmax(Qvals.numpy() * moves_input + 1e-3)]
+            assert moves_input[0][action] > 0, f"{Q=} | {moves_input[0]=} | {action=}"
             if debug_printout:
                 ic(Qvals, action, moves_input, env.board)
 
