@@ -15,7 +15,10 @@ def create_environment(
     board_depth=16,
 ):
     """Create the environment for the 2048 game."""
-    return Game(board_size=board_size, board_depth=board_size)
+    return Game(
+        board_size=board_size,
+        board_depth=board_size,
+    )
 
 
 def create_agent(
