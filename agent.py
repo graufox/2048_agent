@@ -30,15 +30,13 @@ def create_agent(
 ):
     """Create the reinforcement agent."""
     # make model for Q
-    agent = ReinforcementAgent(
-        conv_filters=128,
+    agent = RotationalReinforcementAgent(
+        conv_filters=16,
         conv_dropout=0.1,
         num_conv_stacks=1,
         kernel_size=(1, 1),
-        dense_units=(32,),
+        dense_units=(16,),
         dense_dropout=0.1,
-        board_size=board_size,
-        board_depth=board_depth,
     )
     agent.compile(optimizer=optimizers.Adam(learning_rate))
     if not new_agent:
