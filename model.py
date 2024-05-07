@@ -95,8 +95,6 @@ class ConvModel(tf.keras.models.Model):
         output_units=4,
         kernel_size=(3, 3),
         output_activation=None,
-        board_size=4,
-        board_depth=16,
         use_preprocessing=True,
     ):
         super().__init__()
@@ -177,8 +175,6 @@ class ReinforcementAgent(tf.keras.models.Model):
             dense_units=dense_units,
             dense_dropout=dense_dropout,
             kernel_size=kernel_size,
-            board_depth=board_depth,
-            board_size=board_size,
             output_units=output_units,
             output_activation=None,
         )
