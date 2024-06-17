@@ -1,75 +1,15 @@
 from funcs import board_2_array
 
+from gym import Env
+from gym.spaces import Box, Discrete
+
 import numpy as np
 import pandas as pd
 from icecream import ic
 from numpy.random import rand, randint
 
 
-def slide_column_down(column, board_size=4, return_score=True):
-    """
-    Slide a column downwards, assuming index 0 is at the top.
-    """
-
-    squished_column = column[column > 0]
-    new_column = np.zeros(board_size)
-    score = 0
-    if len(squished_column) >= 1:
-        squished_idx = len(squished_column) - 1
-        new_col_idx = board_size - 1
-        while squished_idx >= 0:
-            value = squished_column[squished_idx]
-            if squished_idx - 1 >= 0:
-                value_above = squished_column[squished_idx - 1]
-                new_column[new_col_idx] = value
-                if value == value_above:
-                    new_column[new_col_idx] = 2 * value
-                    score += 2 * value
-                    squished_idx -= 1
-                squished_idx -= 1
-                new_col_idx -= 1
-            else:
-                new_column[new_col_idx] = value
-                squished_idx -= 1
-    if return_score:
-        return new_column, score
-    return new_column
-
-
-assert np.equal(
-    slide_column_down(np.array([2, 2, 2, 2]), 4, False), np.array([0, 0, 4, 4])
-).all()
-
-assert np.equal(
-    slide_column_down(np.array([2, 0, 2, 2]), 4, False), np.array([0, 0, 2, 4])
-).all()
-
-assert np.equal(
-    slide_column_down(np.array([2, 2, 4, 0]), 4, False), np.array([0, 0, 4, 4])
-).all()
-
-assert np.equal(
-    slide_column_down(np.array([4, 2, 2, 0]), 4, False), np.array([0, 0, 4, 4])
-).all()
-
-assert np.equal(
-    slide_column_down(np.array([2, 16, 4, 0]), 4, False), np.array([0, 2, 16, 4])
-).all()
-
-assert np.equal(
-    slide_column_down(np.array([0, 0, 0, 0]), 4, False), np.array([0, 0, 0, 0])
-).all()
-
-assert np.equal(
-    slide_column_down(np.array([0, 4, 0, 0]), 4, False), np.array([0, 0, 0, 4])
-).all()
-
-assert np.equal(
-    slide_column_down(np.array([2, 4, 8, 16]), 4, False), np.array([2, 4, 8, 16])
-).all()
-
-
-class Game:
+class Game(Env):
     """
     2048
 
@@ -77,14 +17,60 @@ class Game:
     """
 
     def __init__(self, board_size=4, board_depth=17):
+        self.action_space = Discrete(4)
+        self.action_space_names = ["up", "right", "down", "left"]
+        self.observation_space = Box(0, 1, (board_size, board_size, board_depth))
+        self.reward_range = (-1.0, np.inf)
         self.board_size = board_size
         self.board_depth = board_depth
         self.board = np.zeros((board_size, board_size, board_depth), dtype=np.int32)
         self.score = 0
         self.num_moves = 0
-        self.action_space = [0, 1, 2, 3]
         self.last_board = self.board
         self.refresh_board()
+
+    def step(self, action):
+        """for openai gym"""
+
+        # decode action
+        if action == 0:
+            slide_reward = self.slide_up()
+        elif action == 1:
+            slide_reward = self.slide_right()
+        elif action == 2:
+            slide_reward = self.slide_down()
+        elif action == 3:
+            slide_reward = self.slide_left()
+
+        reward = np.log1p(slide_reward) / np.log(2.0)
+        done = self.is_done()
+        if not done:
+            self.last_board = self.board
+            self.add_random_tile()
+
+        return (
+            board_2_array(self.board, self.board_size, self.board_depth),
+            reward,
+            self.is_done(),
+            {"available_moves": self.available_moves()},
+            self.is_done(),
+        )
+
+    def reset(self):
+        """for openai gym"""
+        self.refresh_board()
+        self.score = 0
+        self.num_moves = 0
+        return (
+            board_2_array(self.board, self.board_size, self.board_depth),
+            {"available_moves": np.ones((1, 4), dtype=np.float32)},
+        )
+
+    def render(self):
+        print(self.board)
+
+    def close():
+        return None
 
     def refresh_board(self):
         """resets the board and places a tile randomly"""
@@ -178,42 +164,68 @@ class Game:
             done = fully_mixed
         return done
 
-    def reset(self):
-        """for openai gym"""
-        self.refresh_board()
-        self.score = 0
-        self.num_moves = 0
-        return (
-            board_2_array(self.board, self.board_size, self.board_depth),
-            np.ones((1, 4), dtype=np.float32),
-        )
 
-    def step(self, action):
-        """for openai gym"""
+def slide_column_down(column, board_size=4, return_score=True):
+    """
+    Slide a column downwards, assuming index 0 is at the top.
+    """
 
-        # decode action
-        if action == 0:
-            slide_reward = self.slide_up()
-        elif action == 1:
-            slide_reward = self.slide_right()
-        elif action == 2:
-            slide_reward = self.slide_down()
-        elif action == 3:
-            slide_reward = self.slide_left()
+    squished_column = column[column > 0]
+    new_column = np.zeros(board_size)
+    score = 0
+    if len(squished_column) >= 1:
+        squished_idx = len(squished_column) - 1
+        new_col_idx = board_size - 1
+        while squished_idx >= 0:
+            value = squished_column[squished_idx]
+            if squished_idx - 1 >= 0:
+                value_above = squished_column[squished_idx - 1]
+                new_column[new_col_idx] = value
+                if value == value_above:
+                    new_column[new_col_idx] = 2 * value
+                    score += 2 * value
+                    squished_idx -= 1
+                squished_idx -= 1
+                new_col_idx -= 1
+            else:
+                new_column[new_col_idx] = value
+                squished_idx -= 1
+    if return_score:
+        return new_column, score
+    return new_column
 
-        reward = np.log1p(slide_reward) / np.log(2.0) - 0.1
-        done = self.is_done()
-        if not done:
-            self.last_board = self.board
-            self.add_random_tile()
 
-        return (
-            board_2_array(self.board, self.board_size, self.board_depth),
-            reward,
-            self.is_done(),
-            {},
-        )
+assert np.equal(
+    slide_column_down(np.array([2, 2, 2, 2]), 4, False), np.array([0, 0, 4, 4])
+).all()
 
+assert np.equal(
+    slide_column_down(np.array([2, 0, 2, 2]), 4, False), np.array([0, 0, 2, 4])
+).all()
+
+assert np.equal(
+    slide_column_down(np.array([2, 2, 4, 0]), 4, False), np.array([0, 0, 4, 4])
+).all()
+
+assert np.equal(
+    slide_column_down(np.array([4, 2, 2, 0]), 4, False), np.array([0, 0, 4, 4])
+).all()
+
+assert np.equal(
+    slide_column_down(np.array([2, 16, 4, 0]), 4, False), np.array([0, 2, 16, 4])
+).all()
+
+assert np.equal(
+    slide_column_down(np.array([0, 0, 0, 0]), 4, False), np.array([0, 0, 0, 0])
+).all()
+
+assert np.equal(
+    slide_column_down(np.array([0, 4, 0, 0]), 4, False), np.array([0, 0, 0, 4])
+).all()
+
+assert np.equal(
+    slide_column_down(np.array([2, 4, 8, 16]), 4, False), np.array([2, 4, 8, 16])
+).all()
 
 if __name__ == "__main__":
     g = Game(board_size=4)

@@ -67,7 +67,8 @@ def train_agent(
     # iterate through a number of episodes
     for i_episode in range(num_episodes):
         # start with a fresh environment
-        observation, moves_input = env.reset()
+        observation, info = env.reset()
+        moves_input = info["available_moves"]
         episode_reward = 0
 
         # run the simulation
@@ -82,19 +83,24 @@ def train_agent(
                 env.board_depth
             )
             Qvals, _ = agent((observation_input, moves_input))
-            action = [np.argmax(Qvals.numpy() * moves_input + 1e-3)]
-            assert moves_input[0][action] > 0, f"{Q=} | {moves_input[0]=} | {action=}"
+            Qvals = Qvals.numpy()
+            Qvals[:, ~moves_input[0].astype(bool)] = -np.inf
+            action = [np.argmax(Qvals)]
+            # assert (
+            #     moves_input[0][action] > 0
+            # ), f"{Qvals=} | {moves_input[0]=} | {action=}"
             if debug_printout:
                 ic(Qvals, action, moves_input, env.board)
 
             # check for any NaN values encountered in output
-            if np.isnan(Qvals.numpy()).any():
+            if np.isnan(Qvals).any():
                 ic(Qvals)
                 print("NaN in model outputs, aborting")
                 raise ValueError
 
             # make a step in the environment
-            new_observation, reward, done, _ = env.step(action[0])
+            new_observation, reward, done, info, _ = env.step(action[0])
+            new_moves_input = info["available_moves"]
             episode_reward += reward
             if debug_printout:
                 ic(env.board, reward)
@@ -109,13 +115,13 @@ def train_agent(
             Q1, _ = agent((new_observation_input, new_moves_input))
 
             # compute the target Q-values
-            maxQ1 = np.max(Q1, axis=1)
-            targetQ = Qvals.numpy()
+            maxQ1 = np.max(Q1.numpy(), axis=1)
+            targetQ = Qvals.copy()
             for i in range(len(Q1)):
+                targetQ[i, action[i]] = reward
                 if not done:
                     targetQ[i, action[i]] = reward + gamma * maxQ1[i]
-                else:
-                    targetQ[i, action[i]] = reward
+                targetQ[i, ~moves_input[i].astype(bool)] = 0.0
 
             # backpropagate error between predicted and new Q values for state
             agent.train_step((observation_input, moves_input), targetQ)
