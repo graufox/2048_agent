@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+
 from icecream import ic
 from matplotlib import pyplot as plt
 from tensorflow.keras import optimizers
@@ -54,7 +55,7 @@ def train_agent(
     gamma=0.97,
     debug_printout=False,
     num_episodes=10_000,
-    max_episode_length=1e6,
+    max_episode_length=1_000_000,
     checkpoint_path="training/model.weights.h5",
 ):
     """Train the agent on the game."""
