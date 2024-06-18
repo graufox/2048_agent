@@ -26,7 +26,7 @@ def create_agent(
     board_depth=4,
     learning_rate=1e-3,
     new_agent=True,
-    checkpoint_path="training/model_checkpoint.ckpt",
+    checkpoint_path="training/model_checkpoint.weights.h5",
 ):
     """Create the reinforcement agent."""
     # make model for Q
@@ -55,7 +55,7 @@ def train_agent(
     debug_printout=False,
     num_episodes=10_000,
     max_episode_length=1e6,
-    checkpoint_path="training/model_checkpoint.ckpt",
+    checkpoint_path="training/model.weights.h5",
 ):
     """Train the agent on the game."""
 
