@@ -24,18 +24,18 @@ def create_environment(
 def create_agent(
     board_size=4,
     board_depth=4,
-    learning_rate=1e-3,
+    learning_rate=1e-4,
     new_agent=True,
     checkpoint_path="training/model_checkpoint.weights.h5",
 ):
     """Create the reinforcement agent."""
     # make model for Q
-    agent = RotationalReinforcementAgent(
-        conv_filters=16,
+    agent = ReinforcementAgent(
+        conv_filters=128,
         conv_dropout=0.1,
         num_conv_stacks=1,
         kernel_size=(1, 1),
-        dense_units=(16,),
+        dense_units=(128,),
         dense_dropout=0.1,
     )
     agent.compile(optimizer=optimizers.Adam(learning_rate))
