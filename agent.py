@@ -59,103 +59,154 @@ def train_agent(
 ):
     """Train the agent on the game."""
 
+    def compute_updated_q_vals(
+        Qvals, next_Qvals, reward, action, available_moves, done
+    ):
+        updated_targetQ = Qvals.copy()
+        maxQ1 = np.argmax(next_Qvals, axis=1)
+        for i in range(len(next_Qvals)):
+            updated_targetQ[i, action[i]] = 0.0
+            if not done:
+                updated_targetQ[i, action[i]] = reward + gamma * maxQ1[i]
+        # updated_targetQ[i, ~available_moves[i].astype(bool)] = 0.0
+        return updated_targetQ
+
     # set up lists for keeping track of progress
     scores = []
     rewards = []
     buffer = []
 
-    # iterate through a number of episodes
-    for i_episode in range(num_episodes):
-        # start with a fresh environment
-        observation, info = env.reset()
-        moves_input = info["available_moves"]
-        episode_reward = 0
+    try:
 
-        # run the simulation
-        for t in range(max_episode_length):
-            if DEBUG:
-                ic(t)
-                # ic(env.board)
-                # ic(env.available_moves())
+        # iterate through a number of episodes
+        for i_episode in range(num_episodes):
+            # start with a fresh environment
+            observation, info = env.reset()
+            moves_input = info["available_moves"]
+            episode_reward = 0
 
-            # choose best action, with noise
-            observation_input = np.array([observation], dtype=np.float32) / np.sqrt(
-                env.board_depth
-            )
-            Qvals, _ = agent((observation_input, moves_input))
-            Qvals = Qvals.numpy()
-            Qvals[:, ~moves_input[0].astype(bool)] = -np.inf
-            action = [np.argmax(Qvals)]
-            # assert (
-            #     moves_input[0][action] > 0
-            # ), f"{Qvals=} | {moves_input[0]=} | {action=}"
-            if debug_printout:
-                ic(Qvals, action, moves_input, env.board)
+            # run the simulation
+            for t in range(max_episode_length):
+                if DEBUG:
+                    ic(t)
+                    # ic(env.board)
+                    # ic(env.available_moves())
 
-            # check for any NaN values encountered in output
-            if np.isnan(Qvals).any():
-                ic(Qvals)
-                print("NaN in model outputs, aborting")
-                raise ValueError
-
-            # make a step in the environment
-            new_observation, reward, done, info, _ = env.step(action[0])
-            new_moves_input = info["available_moves"]
-            episode_reward += reward
-            if debug_printout:
-                ic(env.board, reward)
-
-            new_moves = env.available_moves()
-
-            # get Q-values for actions in new state
-            new_observation_input = np.array(
-                [new_observation], dtype=np.float32
-            ) / np.sqrt(env.board_depth)
-            new_moves_input = np.array(new_moves, dtype=np.float32)
-            Q1, _ = agent((new_observation_input, new_moves_input))
-
-            # compute the target Q-values
-            maxQ1 = np.max(Q1.numpy(), axis=1)
-            targetQ = Qvals.copy()
-            for i in range(len(Q1)):
-                targetQ[i, action[i]] = reward
-                if not done:
-                    targetQ[i, action[i]] = reward + gamma * maxQ1[i]
-                targetQ[i, ~moves_input[i].astype(bool)] = 0.0
-
-            # backpropagate error between predicted and new Q values for state
-            agent.train_step((observation_input, moves_input), targetQ)
-            if np.random.rand() < 5e-1:
-                buffer.append(((observation_input, moves_input), targetQ))
-            if np.random.rand() < 5e-1:
-                if len(buffer) > 0:
-                    random_idx = np.random.randint(len(buffer))
-                    (old_observation_input, old_moves_input), old_targetQ = buffer.pop(
-                        random_idx
-                    )
-                    agent.train_step((observation_input, moves_input), targetQ)
-
-            # end game if finished
-            if done or t > max_episode_length:
-                random_rank = score_quantile(episode_reward)
-                highest_tile = env.board.max()
-                ic(
-                    i_episode,
-                    # t,
-                    env.score,
-                    # random_rank,
-                    # highest_tile,
+                # choose best action, with noise
+                observation_input = np.array([observation], dtype=np.float32) / np.sqrt(
+                    env.board_depth
                 )
-                break
+                Qvals, _ = agent((observation_input, moves_input))
+                Qvals = Qvals.numpy()
+                Qvals[:, ~moves_input[0].astype(bool)] = -np.inf
+                action = [np.argmax(Qvals)]
+                if debug_printout:
+                    ic(Qvals, action, moves_input, env.board)
 
-            # log observations
-            observation = new_observation.copy()
-            moves_input = new_moves_input.copy()
+                # check for any NaN values encountered in output
+                if np.isnan(Qvals).any():
+                    ic(Qvals)
+                    print("NaN in model outputs, aborting")
+                    raise ValueError
 
-        # log scores and rewards for game
-        scores += [env.score]
-        rewards += [episode_reward]
-        agent.save_weights(checkpoint_path)
+                # make a step in the environment
+                new_observation, reward, done, info, _ = env.step(action[0])
+                new_moves_input = info["available_moves"]
+                episode_reward += reward
+                if debug_printout:
+                    ic(env.board, reward)
+
+                # get Q-values for actions in new state
+                new_observation_input = np.array(
+                    [new_observation], dtype=np.float32
+                ) / np.sqrt(env.board_depth)
+                # new_moves_input = np.array(new_moves_input, dtype=np.float32)
+                new_Qvals, _ = agent((new_observation_input, new_moves_input))
+
+                # compute the target Q-values and optimize
+                targetQ = compute_updated_q_vals(
+                    Qvals, new_Qvals, reward, action, moves_input, done
+                )
+                agent.train_step(
+                    (observation_input, moves_input),
+                    targetQ,
+                )
+
+                # occasionally save to buffer
+                if np.random.rand() < 0.1:
+                    buffer.append(
+                        (
+                            (observation_input, moves_input),
+                            action,
+                            reward,
+                            done,
+                            (new_observation_input, new_moves_input),
+                        )
+                    )
+                # occasionally train from buffer
+                if np.random.rand() < 0.05:
+                    if len(buffer) > 0:
+
+                        # pick random past observation
+                        random_idx = np.random.randint(len(buffer))
+                        (
+                            (old_observation_input, old_moves_input),
+                            old_action,
+                            old_reward,
+                            old_done,
+                            (old_next_observation_input, old_next_moves_input),
+                        ) = buffer.pop(random_idx)
+
+                        # compute the target Q-values
+                        updated_targetQ, _ = agent(
+                            (old_observation_input, old_moves_input)
+                        )
+                        updated_targetQ = updated_targetQ.numpy()
+                        updated_Q1, _ = agent(
+                            (old_next_observation_input, old_next_moves_input)
+                        )
+                        updated_Q1 = updated_Q1.numpy()
+                        updated_targetQ = compute_updated_q_vals(
+                            updated_targetQ,
+                            updated_Q1,
+                            old_reward,
+                            old_action,
+                            old_moves_input,
+                            old_done,
+                        )
+
+                        agent.train_step(
+                            (old_observation_input, old_moves_input),
+                            updated_targetQ,
+                        )
+
+                # end game if finished
+                if done or t > max_episode_length:
+                    random_rank = score_quantile(episode_reward)
+                    highest_tile = env.board.max()
+                    ic(
+                        i_episode,
+                        # t,
+                        env.score,
+                        # random_rank,
+                        # highest_tile,
+                    )
+                    break
+
+                # log observations
+                observation = new_observation.copy()
+                moves_input = new_moves_input.copy()
+
+            # log scores and rewards for game
+            scores += [env.score]
+            rewards += [episode_reward]
+            agent.save_weights(checkpoint_path)
+
+    except KeyboardInterrupt:
+        print("aborted by user")
+
+    except ValueError as e:
+        print(f"value error: {e}")
 
     agent.save_weights(checkpoint_path)
     return scores, rewards
@@ -214,18 +265,13 @@ def main(
     scores, rewards = [], []
     if train:
         print("training...")
-        try:
-            scores, rewards = train_agent(
-                agent,
-                env,
-                num_episodes=num_episodes,
-                max_episode_length=max_episode_length,
-                debug_printout=debug_printout,
-            )
-        except KeyboardInterrupt:
-            print("aborted by user")
-        except ValueError as e:
-            print(f"value error: {e}")
+        scores, rewards = train_agent(
+            agent,
+            env,
+            num_episodes=num_episodes,
+            max_episode_length=max_episode_length,
+            debug_printout=debug_printout,
+        )
         print("finished training")
         if len(scores) > 0:
             compute_performance(scores, rewards)
