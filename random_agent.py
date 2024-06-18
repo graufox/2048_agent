@@ -31,6 +31,7 @@ episode_length = 2**20  # max number of moves per game
 
 # set up lists for keeping track of progress
 scores = []
+rewards = []
 reward_totals = []
 reward_stds = []
 observations = []
@@ -40,7 +41,7 @@ lengths = []
 
 try:
     for i_episode in range(num_episodes):
-        print(f'episode {i_episode+1} of {num_episodes}')
+        print(f"episode {i_episode+1} of {num_episodes}")
         # start with a fresh environment
         observation = env.reset()
 
@@ -52,7 +53,7 @@ try:
             action = [np.random.choice(range(4), p=(moves / moves.sum()))]
 
             # make a step in the environment
-            new_observation, reward, done, info = env.step(action[0])
+            new_observation, reward, done, info, _ = env.step(action[0])
             episode_rewards += [reward]
 
             observation = new_observation
@@ -62,6 +63,7 @@ try:
                 break
 
         scores += [env.score]
+        rewards.extend(episode_rewards)
         reward_totals += [np.sum(episode_rewards)]
         reward_stds += [np.std(episode_rewards)]
         lengths += [t + 1]
@@ -69,14 +71,27 @@ try:
 except KeyboardInterrupt:
     print("simulation aborted")
 
-performance_df = pd.DataFrame({"score": scores, "reward": reward_totals, "reward_std": reward_stds, "length": lengths})
+performance_df = pd.DataFrame(
+    {
+        "episode_score": scores,
+        "episode_reward": reward_totals,
+        "episode_reward_std": reward_stds,
+        "episode_length": lengths,
+    }
+)
 
 print(performance_df.describe())
 
 performance_df.describe().to_csv("random_reward_statistics.csv", index=False)
 performance_df.to_csv("random_reward_results.csv", index=False)
 
-plt.hist(reward_totals, bins=np.arange(0, np.quantile(reward_totals, 0.99) * 1.1, 10))
-plt.title("Histogram of Rewards")
-plt.savefig("random_scores_histogram.png")
+print(np.mean(rewards), np.std(rewards))
+
+pd.Series(rewards).plot.hist()
+# plt.hist(
+#     rewards,
+#     bins=np.arange(0, np.quantile(rewards, 0.99) * 1.1, 10),
+# )
+plt.title("Histogram of Reward per Turn")
+plt.savefig("random_reward_per_turn_histogram.png")
 plt.show()

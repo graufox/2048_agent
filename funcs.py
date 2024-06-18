@@ -52,4 +52,4 @@ performance_df = pd.read_csv("random_reward_results.csv")
 
 def score_quantile(reward):
     """Calculate the score quantile relative to random performance."""
-    return performance_df["reward"].lt(reward).mean()
+    return performance_df["episode_reward"].lt(reward).mean()
